@@ -1,0 +1,5 @@
+{
+  "name": "Manager",
+  "description": "A smart financial manager with AI insights, receipt tracking, and investment planning.",
+  "requestFramePermissions": []
+}
