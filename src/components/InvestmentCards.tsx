@@ -11,9 +11,10 @@ interface Investment {
 
 interface InvestmentCardsProps {
   investments: Investment[];
+  currency: 'INR' | 'TZS';
 }
 
-export default function InvestmentCards({ investments }: InvestmentCardsProps) {
+export default function InvestmentCards({ investments, currency }: InvestmentCardsProps) {
   // Indian specific investment opportunities if the API returns the old ones
   const indianInvestments = [
     {
@@ -46,14 +47,41 @@ export default function InvestmentCards({ investments }: InvestmentCardsProps) {
     }
   ];
 
-  const displayInvestments = investments.length > 0 ? investments : indianInvestments;
+  // Tanzania specific investment opportunities
+  const tanzaniaInvestments = [
+    {
+      name: "UTT AMIS (Liquid Fund)",
+      expectedReturn: "12-14% p.a.",
+      risk: "Low",
+      minAmount: "5,000 TZS",
+      description: "High liquidity fund managed by UTT AMIS, ideal for emergency funds."
+    },
+    {
+      name: "Treasury Bonds (20-25 Years)",
+      expectedReturn: "15.4% p.a.",
+      risk: "Very Low",
+      minAmount: "1,000,000 TZS",
+      description: "Government-backed long-term bonds with guaranteed semi-annual interest payments."
+    },
+    {
+      name: "DSE (Stock Market)",
+      expectedReturn: "Varies",
+      risk: "Moderate",
+      minAmount: "Varies",
+      description: "Invest in top Tanzanian companies like CRDB, NMB, or TBL for dividends and growth."
+    }
+  ];
+
+  const displayInvestments = investments.length > 0 
+    ? investments 
+    : (currency === 'INR' ? indianInvestments : tanzaniaInvestments);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center gap-2 text-white">
           <TrendingUp className="w-6 h-6 text-primary" />
-          Investment Opportunities (India)
+          Investment Opportunities ({currency === 'INR' ? 'India' : 'Tanzania'})
         </h2>
       </div>
       
@@ -78,7 +106,11 @@ export default function InvestmentCards({ investments }: InvestmentCardsProps) {
               </div>
               <div>
                 <div className="text-[10px] text-stone-500 uppercase font-bold">Min. Amount</div>
-                <div className="text-stone-200 font-bold">{inv.minAmount.includes('₹') ? inv.minAmount : `₹${inv.minAmount}`}</div>
+                <div className="text-stone-200 font-bold">
+                  {inv.minAmount.includes('₹') || inv.minAmount.includes('TZS') 
+                    ? inv.minAmount 
+                    : (currency === 'INR' ? `₹${inv.minAmount}` : `${inv.minAmount} TZS`)}
+                </div>
               </div>
             </div>
           </div>

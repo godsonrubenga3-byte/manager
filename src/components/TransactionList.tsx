@@ -6,9 +6,10 @@ import { Transaction } from '../services/geminiService';
 interface TransactionListProps {
   transactions: Transaction[];
   onDelete: (id: number) => void;
+  currency: 'INR' | 'TZS';
 }
 
-export default function TransactionList({ transactions, onDelete }: TransactionListProps) {
+export default function TransactionList({ transactions, onDelete, currency }: TransactionListProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
@@ -45,7 +46,7 @@ export default function TransactionList({ transactions, onDelete }: TransactionL
               </div>
               <div className="flex items-center gap-4">
                 <div className={`font-mono font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-stone-300'}`}>
-                  {t.type === 'income' ? '+' : '-'} ₹{t.amount.toLocaleString()}
+                  {t.type === 'income' ? '+' : '-'} {currency === 'INR' ? '₹' : ''}{t.amount.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
                 </div>
                 <button
                   onClick={() => t.id && onDelete(t.id)}

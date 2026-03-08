@@ -19,6 +19,13 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [currency, setCurrency] = useState<'INR' | 'TZS'>(() => {
+    return (localStorage.getItem('manager_currency') as 'INR' | 'TZS') || 'INR';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('manager_currency', currency);
+  }, [currency]);
 
   useEffect(() => {
     fetchTransactions();
@@ -111,7 +118,7 @@ export default function App() {
 
   const handleRefreshInsights = async () => {
     setLoadingInsights(true);
-    const result = await getAIInsights(transactions);
+    const result = await getAIInsights(transactions, currency);
     setInsights(result || '');
     setLoadingInsights(false);
   };
@@ -227,18 +234,21 @@ export default function App() {
             amount={balance}
             icon={<Wallet className="w-6 h-6 text-primary" />}
             color="primary"
+            currency={currency}
           />
           <StatCard
             title="Total Income"
             amount={totals.income}
             icon={<ArrowUpCircle className="w-6 h-6 text-emerald-500" />}
             color="emerald"
+            currency={currency}
           />
           <StatCard
             title="Total Expenses"
             amount={totals.expenses}
             icon={<ArrowDownCircle className="w-6 h-6 text-red-500" />}
             color="red"
+            currency={currency}
           />
           <div className="glass p-6 rounded-2xl">
             <div className="flex items-center justify-between mb-4">
@@ -251,7 +261,7 @@ export default function App() {
               {topCategory.category}
             </div>
             <div className="text-xs text-stone-500 mt-1">
-              ₹{topCategory.amount.toLocaleString()}
+              {currency === 'INR' ? '₹' : ''}{topCategory.amount.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
             </div>
           </div>
         </div>
@@ -259,8 +269,8 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Form and List */}
           <div className="lg:col-span-1 space-y-8">
-            <TransactionForm onAdd={handleAddTransaction} />
-            <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} />
+            <TransactionForm onAdd={handleAddTransaction} currency={currency} />
+            <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currency} />
           </div>
 
           {/* Right Column: Analytics and AI */}
@@ -293,16 +303,22 @@ export default function App() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-stone-400">Total Income</span>
-                        <span className="text-emerald-500 font-bold">₹{totals.income.toLocaleString()}</span>
+                        <span className="text-emerald-500 font-bold">
+                          {currency === 'INR' ? '₹' : ''}{totals.income.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-stone-400">Total Expenses</span>
-                        <span className="text-red-500 font-bold">₹{totals.expenses.toLocaleString()}</span>
+                        <span className="text-red-500 font-bold">
+                          {currency === 'INR' ? '₹' : ''}{totals.expenses.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
+                        </span>
                       </div>
                       <div className="h-px bg-white/5 my-2"></div>
                       <div className="flex justify-between items-center">
                         <span className="text-stone-400">Net Savings</span>
-                        <span className="text-primary font-bold">₹{(totals.income - totals.expenses).toLocaleString()}</span>
+                        <span className="text-primary font-bold">
+                          {currency === 'INR' ? '₹' : ''}{(totals.income - totals.expenses).toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -321,7 +337,7 @@ export default function App() {
             )}
 
             {activeTab === 'Investments' && (
-              <InvestmentCards investments={investments} />
+              <InvestmentCards investments={investments} currency={currency} />
             )}
 
             {activeTab === 'Budgets' && (
@@ -330,12 +346,14 @@ export default function App() {
                   budgets={budgets}
                   spendingByCategory={spendingByCategory}
                   onSave={handleSaveBudget}
+                  currency={currency}
                 />
                 <SavingsGoals
                   goals={goals}
                   onAdd={handleAddGoal}
                   onUpdate={handleUpdateGoal}
                   onDelete={handleDeleteGoal}
+                  currency={currency}
                 />
               </div>
             )}
@@ -379,7 +397,20 @@ export default function App() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-stone-300">
                           <span className="font-semibold">Currency</span>
-                          <span className="text-primary font-bold">INR (₹)</span>
+                          <div className="flex bg-white/5 p-1 rounded-lg">
+                            <button
+                              onClick={() => setCurrency('INR')}
+                              className={`px-3 py-1 rounded-md text-xs transition-all ${currency === 'INR' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
+                            >
+                              INR (₹)
+                            </button>
+                            <button
+                              onClick={() => setCurrency('TZS')}
+                              className={`px-3 py-1 rounded-md text-xs transition-all ${currency === 'TZS' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
+                            >
+                              TZS
+                            </button>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-stone-300">
                           <span className="font-semibold">Language</span>
@@ -407,7 +438,7 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   );
 }
 
-function StatCard({ title, amount, icon, color }: { title: string; amount: number; icon: React.ReactNode; color: string }) {
+function StatCard({ title, amount, icon, color, currency }: { title: string; amount: number; icon: React.ReactNode; color: string; currency: 'INR' | 'TZS' }) {
   return (
     <div className="glass p-6 rounded-2xl">
       <div className="flex items-center justify-between mb-4">
@@ -415,7 +446,7 @@ function StatCard({ title, amount, icon, color }: { title: string; amount: numbe
         <div className="p-2 bg-white/5 rounded-lg">{icon}</div>
       </div>
       <div className="text-2xl font-bold font-mono text-white">
-        {amount.toLocaleString()} <span className="text-sm font-normal text-stone-500">₹</span>
+        {currency === 'INR' ? '₹' : ''}{amount.toLocaleString()} <span className="text-sm font-normal text-stone-500">{currency === 'TZS' ? 'TZS' : '₹'}</span>
       </div>
     </div>
   );

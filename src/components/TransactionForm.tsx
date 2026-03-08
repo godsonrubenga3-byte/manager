@@ -3,9 +3,10 @@ import { PlusCircle, Tag, FileText, Camera, X, Image as ImageIcon } from 'lucide
 
 interface TransactionFormProps {
   onAdd: (transaction: any) => void;
+  currency: 'INR' | 'TZS';
 }
 
-export default function TransactionForm({ onAdd }: TransactionFormProps) {
+export default function TransactionForm({ onAdd, currency }: TransactionFormProps) {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
   const [description, setDescription] = useState('');
@@ -73,13 +74,13 @@ export default function TransactionForm({ onAdd }: TransactionFormProps) {
 
       <div className="space-y-3">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm">₹</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm">{currency === 'INR' ? '₹' : 'TZS'}</span>
           <input
             type="number"
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-lg font-medium text-white placeholder:text-stone-600"
+            className={`w-full ${currency === 'TZS' ? 'pl-16' : 'pl-12'} pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-lg font-medium text-white placeholder:text-stone-600`}
             required
           />
         </div>

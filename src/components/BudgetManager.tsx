@@ -10,9 +10,10 @@ interface BudgetManagerProps {
   budgets: Budget[];
   spendingByCategory: Record<string, number>;
   onSave: (category: string, limit: number) => void;
+  currency: 'INR' | 'TZS';
 }
 
-export default function BudgetManager({ budgets, spendingByCategory, onSave }: BudgetManagerProps) {
+export default function BudgetManager({ budgets, spendingByCategory, onSave, currency }: BudgetManagerProps) {
   const [selectedCategory, setSelectedCategory] = useState('Food');
   const [limit, setLimit] = useState('');
 
@@ -45,7 +46,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave }: B
           </select>
           <input
             type="number"
-            placeholder="Limit (₹)"
+            placeholder={`Limit (${currency === 'INR' ? '₹' : 'TZS'})`}
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
             className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-stone-600"
@@ -73,9 +74,9 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave }: B
                     <span className="text-stone-300 font-medium">{budget.category}</span>
                     <span className="text-stone-500">
                       <span className={isOver ? 'text-red-500 font-bold' : 'text-stone-300'}>
-                        ₹{spent.toLocaleString()}
+                        {currency === 'INR' ? '₹' : ''}{spent.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
                       </span>
-                      {' / '}₹{budget.limit_amount.toLocaleString()}
+                      {' / '}{currency === 'INR' ? '₹' : ''}{budget.limit_amount.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
                     </span>
                   </div>
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">

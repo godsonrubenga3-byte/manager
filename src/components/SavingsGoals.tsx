@@ -14,9 +14,10 @@ interface SavingsGoalsProps {
   onAdd: (name: string, target: number, current: number, deadline?: string) => void;
   onUpdate: (id: number, current: number) => void;
   onDelete: (id: number) => void;
+  currency: 'INR' | 'TZS';
 }
 
-export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete }: SavingsGoalsProps) {
+export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete, currency }: SavingsGoalsProps) {
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
@@ -48,7 +49,7 @@ export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete }: Savin
           />
           <input
             type="number"
-            placeholder="Target (₹)"
+            placeholder={`Target (${currency === 'INR' ? '₹' : 'TZS'})`}
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-stone-600"
@@ -79,7 +80,7 @@ export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete }: Savin
                         {isComplete && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                       </h3>
                       <p className="text-xs text-stone-500">
-                        ₹{goal.current_amount.toLocaleString()} / ₹{goal.target_amount.toLocaleString()}
+                        {currency === 'INR' ? '₹' : ''}{goal.current_amount.toLocaleString()} / {currency === 'INR' ? '₹' : ''}{goal.target_amount.toLocaleString()} {currency === 'TZS' ? 'TZS' : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

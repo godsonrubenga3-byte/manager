@@ -12,18 +12,18 @@ export interface Transaction {
   type: 'income' | 'expense';
 }
 
-export async function getAIInsights(transactions: Transaction[]) {
+export async function getAIInsights(transactions: Transaction[], currency: 'INR' | 'TZS' = 'INR') {
   if (transactions.length === 0) return "Add some transactions to get AI insights!";
 
   const prompt = `
-    Analyze these financial transactions for a user in India (INR).
+    Analyze these financial transactions for a user in ${currency === 'INR' ? 'India (INR)' : 'Tanzania (TZS)'}.
     Transactions: ${JSON.stringify(transactions)}
     
     Provide:
     1. A summary of spending habits.
     2. Areas where they can save.
     3. A motivational tip.
-    4. Specific investment advice for the Indian market (e.g., SIP, PPF, FD) based on their current balance.
+    4. Specific investment advice for the ${currency === 'INR' ? 'Indian market (e.g., SIP, PPF, FD)' : 'Tanzanian market (e.g., UTT AMIS, Treasury Bonds)'} based on their current balance.
     
     Format the response in Markdown.
   `;
