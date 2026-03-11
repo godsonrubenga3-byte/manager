@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2 } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, User, Lock, Mail } from 'lucide-react';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import Spending3D from './components/Spending3D';
@@ -9,7 +9,15 @@ import BudgetManager from './components/BudgetManager';
 import SavingsGoals from './components/SavingsGoals';
 import { getAIInsights, Transaction } from './services/geminiService';
 
+interface UserData {
+  id: number;
+  email: string;
+  name: string;
+}
+
 export default function App() {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [investments, setInvestments] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -28,11 +36,39 @@ export default function App() {
   }, [currency]);
 
   useEffect(() => {
-    fetchTransactions();
-    fetchInvestments();
-    fetchBudgets();
-    fetchGoals();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+      fetchInvestments();
+      fetchBudgets();
+      fetchGoals();
+    }
+  }, [user]);
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      }
+    } catch (error) {
+      console.error("Auth check failed", error);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setUser(null);
+    setTransactions([]);
+    setBudgets([]);
+    setGoals([]);
+  };
 
   const fetchTransactions = async () => {
     const res = await fetch('/api/transactions');
@@ -174,6 +210,18 @@ export default function App() {
     return chartData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
   }, [chartData]);
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-bg-dark flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen onLogin={setUser} />;
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark flex text-stone-100">
       {/* Sidebar */}
@@ -196,7 +244,7 @@ export default function App() {
         </div>
 
         <div className="absolute bottom-0 w-full p-6 border-t border-stone-100">
-          <button className="flex items-center gap-3 text-stone-500 hover:text-red-600 transition-colors w-full">
+          <button onClick={handleLogout} className="flex items-center gap-3 text-stone-500 hover:text-red-600 transition-colors w-full">
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sign Out</span>
           </button>
@@ -207,7 +255,7 @@ export default function App() {
       <main className="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">
         <header className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white">Habari, User!</h2>
+            <h2 className="text-2xl font-bold text-white">Habari, {user.name || 'User'}!</h2>
             <p className="text-stone-400">Here's what's happening with your money today.</p>
           </div>
           <div className="flex items-center gap-4">
@@ -447,6 +495,144 @@ function StatCard({ title, amount, icon, color, currency }: { title: string; amo
       </div>
       <div className="text-2xl font-bold font-mono text-white">
         {currency === 'INR' ? '₹' : ''}{amount.toLocaleString()} <span className="text-sm font-normal text-stone-500">{currency === 'TZS' ? 'TZS' : '₹'}</span>
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ onLogin }: { onLogin: (user: UserData) => void }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+    const body = isLogin ? { email, password } : { email, password, name };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Fetch user data after login/signup
+        const meRes = await fetch('/api/auth/me');
+        const meData = await meRes.json();
+        onLogin(meData);
+      } else {
+        setError(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/30 mx-auto mb-4">
+            <Wallet className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Manager</h1>
+          <p className="text-stone-400 mt-2">Smart financial management for everyone.</p>
+        </div>
+
+        <div className="glass p-8 rounded-3xl border border-white/10 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-6">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-400 ml-1">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500" />
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-white"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-400 ml-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500" />
+                <input
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-400 ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500" />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary hover:bg-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Processing...
+                </div>
+              ) : (
+                isLogin ? 'Sign In' : 'Create Account'
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-stone-400 hover:text-primary transition-colors text-sm font-medium"
+            >
+              {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
