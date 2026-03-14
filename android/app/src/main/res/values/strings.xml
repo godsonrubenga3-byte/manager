@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Manager</string>
+    <string name="title_activity_main">Manager</string>
+    <string name="package_name">com.manager.app</string>
+    <string name="custom_url_scheme">com.manager.app</string>
+</resources>

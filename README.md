@@ -1,20 +1,82 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Budget Manager
+[![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://reactjs.org)
+[![Vite](https://img.shields.io/badge/Vite-6-green?style=for-the-badge&logo=vite)](https://vitejs.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-blue?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com)
 
-# Run and deploy your AI Studio app
+A modern personal finance manager built with React, featuring budgeting, transaction tracking, 3D visualizations, AI insights powered by Gemini, and mobile support via Capacitor. Track spending, set savings goals, view interactive charts, and get smart financial advice.
 
-This contains everything you need to run your app locally.
+## ✨ Features
+- **Authentication**: Secure login/register with protected routes
+- **Budget Management**: Create budgets, track expenses
+- **Interactive Visualizations**: 2D Pie Charts (Recharts), 3D Spending Charts (React Three Fiber)
+- **Transactions**: Add/view transaction list with forms
+- **Investment & Savings**: Track investments and goals
+- **AI Insights**: Gemini-powered financial advice
+- **Mobile Ready**: Capacitor for Android/iOS builds
+- **Full-stack**: Express server with SQLite database
+- **Responsive**: TailwindCSS for beautiful UI
 
-View your app in AI Studio: https://ai.studio/apps/a4c0f58b-4c99-4caa-b671-29dfc755034a
+## 🛠 Tech Stack
+| Frontend | Backend | Tools | Mobile |
+|----------|---------|-------|--------|
+| React 19, Vite, TypeScript, TailwindCSS, React Router | Express, better-sqlite3 | Gemini AI, Recharts, Three.js | Capacitor |
 
-## Run Locally
+## 🚀 Quick Start
 
-**Prerequisites:**  Node.js
+### Prerequisites
+- Node.js 20+
+- Gemini API Key (free from [Google AI Studio](https://aistudio.google.com))
 
+### Installation
+```bash
+git clone <repo>
+cd manager
+npm install
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Setup Environment
+Create `.env` file in root:
+```
+GEMINI_API_KEY=your_api_key_here
+```
+
+### Run Locally
+```bash
+npm run dev
+```
+Opens at `http://localhost:5173` (full-stack dev server via `tsx server.ts`).
+
+## 📱 Mobile Development (Capacitor)
+```bash
+npx cap sync android
+npx cap run android
+```
+
+## 🏗 Build for Production
+```bash
+npm run build
+npm run preview
+```
+
+## 📸 Screenshots
+*(Add screenshots of dashboard, charts, mobile app)*
+
+- Landing Page
+- Dashboard with 3D Charts
+- Budget Manager
+- AI Insights
+
+## 🤝 Contributing
+1. Fork the repo
+2. Create branch `feat/your-feature`
+3. Commit changes
+4. Push & PR
+
+## 📄 License
+MIT
+
+---
+
+⭐ Star on GitHub if useful!
+

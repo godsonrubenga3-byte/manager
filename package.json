@@ -12,10 +12,15 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0",
     "@google/genai": "^1.29.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@types/react-router-dom": "^5.3.3",
     "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.4.1",
@@ -28,6 +33,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.13.1",
     "recharts": "^3.8.0",
     "tailwind-merge": "^3.5.0",
     "three": "^0.183.2",

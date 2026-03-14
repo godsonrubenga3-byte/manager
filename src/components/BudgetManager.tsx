@@ -36,11 +36,11 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
           Budget Planner
         </h2>
 
-        <form onSubmit={handleSubmit} className="flex gap-3 mb-8">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:flex gap-4 mb-8 lg:gap-3">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full lg:flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 text-base lg:text-sm"
           >
             {categories.map(c => <option key={c} value={c} className="bg-card-dark">{c}</option>)}
           </select>
@@ -49,13 +49,13 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
             placeholder={`Limit (${currency === 'INR' ? '₹' : 'TZS'})`}
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
-            className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-stone-600"
+            className="w-full lg:flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-stone-600 text-base lg:text-sm"
           />
           <button
             type="submit"
-            className="px-6 py-2 bg-primary hover:bg-secondary text-white font-semibold rounded-xl transition-all"
+            className="w-full lg:w-auto px-8 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl text-base lg:text-sm transition-all shadow-lg hover:shadow-xl hover:shadow-primary/25"
           >
-            Set
+            Set Budget
           </button>
         </form>
 
