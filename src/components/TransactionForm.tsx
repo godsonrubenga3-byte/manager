@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { PlusCircle, Tag, FileText, Camera, X, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Tag, FileText, Camera, X, Image as ImageIcon, Scan } from 'lucide-react';
+import ReceiptScanner from './ReceiptScanner';
 
 interface TransactionFormProps {
   onAdd: (transaction: any) => void;
@@ -12,11 +13,24 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [showScanner, setShowScanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
     'Food', 'Transport', 'Rent', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Education', 'Business', 'Salary', 'Other'
   ];
+
+  const handleScanComplete = (data: any) => {
+    if (data.amount) setAmount(data.amount.toString());
+    if (data.category && categories.includes(data.category)) {
+      setCategory(data.category);
+    } else if (data.category) {
+      // If category is not in list, maybe find closest or set to Other
+      setCategory('Other');
+    }
+    if (data.description) setDescription(data.description);
+    setShowScanner(false);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,23 +68,41 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
           <PlusCircle className="w-5 h-5 text-primary" />
           Add Transaction
         </h2>
-        <div className="flex bg-white/5 p-1 rounded-lg">
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setType('expense')}
-            className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'expense' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
+            onClick={() => setShowScanner(true)}
+            className="p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+            title="Scan Receipt"
           >
-            Expense
+            <Scan className="w-4 h-4" />
+            Scan
           </button>
-          <button
-            type="button"
-            onClick={() => setType('income')}
-            className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'income' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
-          >
-            Income
-          </button>
+          <div className="flex bg-white/5 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setType('expense')}
+              className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'expense' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
+            >
+              Expense
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('income')}
+              className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'income' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
+            >
+              Income
+            </button>
+          </div>
         </div>
       </div>
+
+      {showScanner && (
+        <ReceiptScanner 
+          onScan={handleScanComplete} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
 
       <div className="space-y-3">
         <div className="relative">

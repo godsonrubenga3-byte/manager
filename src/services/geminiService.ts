@@ -39,3 +39,40 @@ export async function getAIInsights(transactions: Transaction[], currency: 'INR'
     return "Failed to generate insights. Please try again later.";
   }
 }
+
+export async function scanReceipt(base64Image: string) {
+  const prompt = "Analyze this receipt image and extract the following information: total amount, category (e.g., Food, Transport, Shopping, Utilities, Health, Entertainment), a brief description, and the date of the transaction. Return the data in JSON format.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [
+        {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Image.split(',')[1] || base64Image,
+          },
+        },
+        { text: prompt },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            amount: { type: Type.NUMBER },
+            category: { type: Type.STRING },
+            description: { type: Type.STRING },
+            date: { type: Type.STRING, description: "ISO format date YYYY-MM-DD" },
+          },
+          required: ["amount", "category", "description", "date"],
+        },
+      },
+    });
+
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("Receipt Scan Error:", error);
+    throw new Error("Failed to scan receipt");
+  }
+}
