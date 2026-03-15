@@ -4,7 +4,7 @@ import ReceiptScanner from './ReceiptScanner';
 
 interface TransactionFormProps {
   onAdd: (transaction: any) => void;
-  currency: 'INR' | 'TZS';
+  currency: string;
 }
 
 export default function TransactionForm({ onAdd, currency }: TransactionFormProps) {
@@ -25,7 +25,6 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
     if (data.category && categories.includes(data.category)) {
       setCategory(data.category);
     } else if (data.category) {
-      // If category is not in list, maybe find closest or set to Other
       setCategory('Other');
     }
     if (data.description) setDescription(data.description);
@@ -63,39 +62,22 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
 
   return (
     <form onSubmit={handleSubmit} className="glass p-6 rounded-2xl space-y-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold flex items-center gap-2 text-white">
           <PlusCircle className="w-5 h-5 text-primary" />
           Add Transaction
         </h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
-            title="Scan Receipt"
-          >
-            <Scan className="w-4 h-4" />
-            Scan
-          </button>
-          <div className="flex bg-white/5 p-1 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setType('expense')}
-              className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'expense' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
-            >
-              Expense
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('income')}
-              className={`px-3 py-1 rounded-md text-sm transition-all ${type === 'income' ? 'bg-primary shadow-sm text-white' : 'text-stone-500'}`}
-            >
-              Income
-            </button>
-          </div>
-        </div>
       </div>
+
+      {/* 1. Scanning Receipt at the top */}
+      <button
+        type="button"
+        onClick={() => setShowScanner(true)}
+        className="w-full py-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl transition-all flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-wider shadow-sm"
+      >
+        <Scan className="w-5 h-5" />
+        Scan Receipt with AI
+      </button>
 
       {showScanner && (
         <ReceiptScanner 
@@ -104,15 +86,15 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
         />
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4 pt-2">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm">{currency === 'INR' ? '₹' : 'TZS'}</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm font-bold">{currency}</span>
           <input
             type="number"
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className={`w-full ${currency === 'TZS' ? 'pl-16' : 'pl-12'} pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-lg font-medium text-white placeholder:text-stone-600`}
+            className="w-full pl-14 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-lg font-medium text-white placeholder:text-stone-600"
             required
           />
         </div>
@@ -123,7 +105,7 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-white"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none text-white text-sm"
             >
               {categories.map(c => <option key={c} value={c} className="bg-card-dark">{c}</option>)}
             </select>
@@ -139,12 +121,12 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-left text-stone-400 flex items-center gap-2 overflow-hidden"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-left text-stone-400 flex items-center gap-2 overflow-hidden text-sm"
             >
               <Camera className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
               {image ? (
-                <span className="text-emerald-500 flex items-center gap-1">
-                  <ImageIcon className="w-3 h-3" /> Receipt Added
+                <span className="text-emerald-500 flex items-center gap-1 truncate">
+                  <ImageIcon className="w-3 h-3" /> Added
                 </span>
               ) : (
                 "Add Receipt"
@@ -168,13 +150,31 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
             placeholder="Description (Optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-white placeholder:text-stone-600 min-h-[60px] resize-none"
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-white placeholder:text-stone-600 min-h-[60px] resize-none text-sm"
           />
+        </div>
+
+        {/* 2. Expenses/Income slider at the bottom */}
+        <div className="flex bg-white/5 p-1.5 rounded-xl border border-white/5">
+          <button
+            type="button"
+            onClick={() => setType('expense')}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type === 'expense' ? 'bg-primary shadow-lg text-white' : 'text-stone-500 hover:text-stone-300'}`}
+          >
+            Expense
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('income')}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${type === 'income' ? 'bg-primary shadow-lg text-white' : 'text-stone-500 hover:text-stone-300'}`}
+          >
+            Income
+          </button>
         </div>
 
         <button
           type="submit"
-          className="w-full py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+          className="w-full py-4 bg-primary hover:bg-secondary text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 text-lg active:scale-95"
         >
           Save Transaction
         </button>

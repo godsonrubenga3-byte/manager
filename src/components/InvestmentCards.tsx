@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, TrendingUp, ShieldCheck, Wallet } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Wallet, ExternalLink, ArrowUpRight } from 'lucide-react';
 
 interface Investment {
   name: string;
@@ -11,105 +11,89 @@ interface Investment {
 
 interface InvestmentCardsProps {
   investments: Investment[];
-  currency: 'INR' | 'TZS';
+  currency: string;
 }
 
 export default function InvestmentCards({ investments, currency }: InvestmentCardsProps) {
-  // Indian specific investment opportunities if the API returns the old ones
-  const indianInvestments = [
+  // Generic fallback if API returns nothing
+  const genericInvestments = [
     {
-      name: "Public Provident Fund (PPF)",
-      expectedReturn: "7.1% p.a.",
-      risk: "Very Low",
-      minAmount: "₹500",
-      description: "Government-backed long-term savings scheme with tax benefits under Section 80C."
-    },
-    {
-      name: "Mutual Funds (SIP)",
-      expectedReturn: "12-15% p.a.",
-      risk: "Moderate",
-      minAmount: "₹500",
-      description: "Systematic Investment Plan in equity or debt funds for wealth creation."
-    },
-    {
-      name: "Fixed Deposits (FD)",
-      expectedReturn: "6-7.5% p.a.",
-      risk: "Low",
-      minAmount: "₹1,000",
-      description: "Safe investment with guaranteed returns over a fixed tenure."
-    },
-    {
-      name: "National Savings Certificate",
-      expectedReturn: "7.7% p.a.",
-      risk: "Very Low",
-      minAmount: "₹1,000",
-      description: "Fixed income post office savings scheme with tax benefits."
-    }
-  ];
-
-  // Tanzania specific investment opportunities
-  const tanzaniaInvestments = [
-    {
-      name: "UTT AMIS (Liquid Fund)",
-      expectedReturn: "12-14% p.a.",
-      risk: "Low",
-      minAmount: "5,000 TZS",
-      description: "High liquidity fund managed by UTT AMIS, ideal for emergency funds."
-    },
-    {
-      name: "Treasury Bonds (20-25 Years)",
-      expectedReturn: "15.4% p.a.",
-      risk: "Very Low",
-      minAmount: "1,000,000 TZS",
-      description: "Government-backed long-term bonds with guaranteed semi-annual interest payments."
-    },
-    {
-      name: "DSE (Stock Market)",
-      expectedReturn: "Varies",
+      name: "Index Funds (S&P 500)",
+      expectedReturn: "8-10% p.a.",
       risk: "Moderate",
       minAmount: "Varies",
-      description: "Invest in top Tanzanian companies like CRDB, NMB, or TBL for dividends and growth."
+      description: "A low-cost way to track the performance of the overall stock market for long-term growth."
+    },
+    {
+      name: "High-Yield Savings",
+      expectedReturn: "4-5% p.a.",
+      risk: "Very Low",
+      minAmount: "None",
+      description: "A safe place to park your emergency fund while earning competitive interest rates."
+    },
+    {
+        name: "Dividend Blue Chips",
+        expectedReturn: "5-7% p.a.",
+        risk: "Low-Moderate",
+        minAmount: "1 Share",
+        description: "Established companies that pay out a portion of their earnings to shareholders regularly."
+    },
+    {
+        name: "Government Bonds",
+        expectedReturn: "3-5% p.a.",
+        risk: "Very Low",
+        minAmount: "Varies",
+        description: "Lend money to the government for a fixed period in exchange for regular interest payments."
     }
   ];
 
-  const displayInvestments = investments.length > 0 
-    ? investments 
-    : (currency === 'INR' ? indianInvestments : tanzaniaInvestments);
+  const displayInvestments = investments.length > 0 ? investments : genericInvestments;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+        <h2 className="text-xl font-bold flex items-center gap-3 text-white">
           <TrendingUp className="w-6 h-6 text-primary" />
-          Investment Opportunities ({currency === 'INR' ? 'India' : 'Tanzania'})
+          Investment Opportunities
         </h2>
+        <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+            Market Insights
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {displayInvestments.map((inv, idx) => (
-          <div key={idx} className="glass p-5 rounded-2xl hover:border-primary/50 transition-all group">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-bold text-lg text-stone-100 group-hover:text-primary transition-colors">{inv.name}</h3>
-              <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider ${
-                inv.risk === 'Low' || inv.risk === 'Very Low' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+          <div key={idx} className="glass p-6 rounded-3xl hover:border-primary/50 transition-all group relative overflow-hidden bg-white/[0.02] border border-white/5">
+            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ArrowUpRight className="w-4 h-4 text-primary" />
+            </div>
+            
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors leading-tight max-w-[70%]">{inv.name}</h3>
+              <span className={`px-2.5 py-1 rounded-xl text-[10px] uppercase font-bold tracking-widest border ${
+                inv.risk === 'Low' || inv.risk === 'Very Low' 
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
               }`}>
                 {inv.risk} Risk
               </span>
             </div>
             
-            <p className="text-sm text-stone-400 mb-4 line-clamp-2">{inv.description}</p>
+            <p className="text-xs text-stone-400 mb-6 line-clamp-3 leading-relaxed font-medium">
+                {inv.description}
+            </p>
             
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+            <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5 bg-white/[0.01] -mx-6 px-6 -mb-6 pb-6">
               <div>
-                <div className="text-[10px] text-stone-500 uppercase font-bold">Est. Return</div>
-                <div className="text-emerald-500 font-bold">{inv.expectedReturn}</div>
+                <div className="text-[10px] text-stone-600 uppercase font-bold tracking-widest mb-1.5">Est. Return</div>
+                <div className="text-emerald-500 font-mono font-bold text-sm">{inv.expectedReturn}</div>
               </div>
               <div>
-                <div className="text-[10px] text-stone-500 uppercase font-bold">Min. Amount</div>
-                <div className="text-stone-200 font-bold">
-                  {inv.minAmount.includes('₹') || inv.minAmount.includes('TZS') 
+                <div className="text-[10px] text-stone-600 uppercase font-bold tracking-widest mb-1.5">Min. Amount</div>
+                <div className="text-white font-mono font-bold text-sm">
+                  {inv.minAmount.includes('₹') || inv.minAmount.includes('TZS') || inv.minAmount.includes('$') || inv.minAmount.includes('€') || inv.minAmount.includes('£')
                     ? inv.minAmount 
-                    : (currency === 'INR' ? `₹${inv.minAmount}` : `${inv.minAmount} TZS`)}
+                    : `${currency}${inv.minAmount}`}
                 </div>
               </div>
             </div>

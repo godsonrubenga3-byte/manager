@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.5",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -13,10 +13,13 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
+    "@capacitor/camera": "^8.0.2",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@capacitor/preferences": "^8.0.1",
     "@google/genai": "^1.29.0",
+    "@libsql/client": "^0.17.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.1.14",
@@ -26,6 +29,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.4.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -44,6 +48,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.18.2",
     "@types/node": "^22.14.0",

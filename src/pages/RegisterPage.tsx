@@ -18,7 +18,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
-    const success = await register(email, password);
+    const success = await register(email, password, name);
     setLoading(false);
 
     if (success) {
@@ -29,7 +29,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-bg-dark to-bg-dark">
+    <div className="min-h-screen flex items-center justify-center py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-bg-dark to-bg-dark">
       <div className="max-w-md w-full space-y-8">
         <div>
             <div className="mx-auto h-20 w-20 bg-primary rounded-3xl flex items-center justify-center shadow-lg shadow-primary/30 mb-8">
@@ -98,7 +98,7 @@ export default function RegisterPage() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
                   value={password}

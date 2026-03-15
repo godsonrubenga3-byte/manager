@@ -1,0 +1,46 @@
+[
+  {
+    "id": 9,
+    "severity": "MEDIUM",
+    "component": "Frontend/TransactionForm",
+    "issue": "Transaction Form Layout",
+    "description": "The layout of the add transaction form needs adjustment. The 'Scanning Receipt' element should be at the top, and the 'Expenses/Income slider' should be moved to the bottom.",
+    "fix": "Reorder components in TransactionForm.tsx to place scanning at the top and the type slider at the bottom.",
+    "status": "COMPLETED"
+  },
+  {
+    "id": 10,
+    "severity": "MEDIUM",
+    "component": "Frontend/PieChart",
+    "issue": "Pie Chart Presentation",
+    "description": "The Pie Chart is too small, and its legend (key) is external. The chart should occupy 75-85% of its container, and the legend should be moved inside the chart's div.",
+    "fix": "Modify PieChart2D.tsx to increase the outerRadius/size and move the Legend component or custom key inside the main container.",
+    "status": "COMPLETED"
+  },
+  {
+    "id": 11,
+    "severity": "HIGH",
+    "component": "Frontend/Global",
+    "issue": "Limited and Inconsistent Currency Support",
+    "description": "Currency tags are inconsistent (Analytics shows only TZS), and the app is limited to INR and TZS. It needs to support a wider range of global currencies.",
+    "fix": "Implement a more robust currency system. Update Dashboard.tsx and all components to support a list of major currencies (USD, EUR, GBP, etc.) and ensure consistent symbol rendering across all pages.",
+    "status": "COMPLETED"
+  },
+  {
+    "id": 12,
+    "severity": "MEDIUM",
+    "component": "Frontend/Auth",
+    "issue": "Password Visibility Toggle",
+    "description": "The password visibility toggle (eye icon) on Login and Register pages does not work because the input type is hardcoded to 'password' and doesn't switch to 'text' when toggled.",
+    "fix": "Update input type in LoginPage.tsx and RegisterPage.tsx to be dynamic: type={showPassword ? 'text' : 'password'}.",
+    "status": "COMPLETED"
+  },
+  {
+    "id": 13,
+    "severity": "HIGH",
+    "component": "Cloud Sync",
+    "issue": "Missing Cloud Backup Option",
+    "description": "Users need a way to explicitly sync/upload their data to the cloud to ensure it's available across multiple devices.",
+    "fix": "Add a 'Sync to Cloud' button in the header and a dedicated Cloud Backup management section in Settings. Implement a visual feedback system for sync status (Last Synced timestamp)."
+  }
+]

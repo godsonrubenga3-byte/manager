@@ -1,20 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, User, Lock, Mail } from 'lucide-react';
-import TransactionForm from './components/TransactionForm';
-import TransactionList from './components/TransactionList';
-import Spending3D from './components/Spending3D';
-import InvestmentCards from './components/InvestmentCards';
-import AIInsights from './components/AIInsights';
-import BudgetManager from './components/BudgetManager';
-import SavingsGoals from './components/SavingsGoals';
-import { getAIInsights, Transaction } from './services/geminiService';
-
-interface UserData {
-  id: number;
-  email: string;
-  name: string;
-}
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './pages/Dashboard';
 
 export default function App() {
-  return null;
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route 
+        path="/dashboard/*" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
+  );
 }

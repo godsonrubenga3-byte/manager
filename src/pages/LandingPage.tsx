@@ -9,8 +9,8 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: 'Investment Opportunities',
-    description: 'Discover Tanzania-specific investments like Treasury Bonds and DSE stocks.',
+    title: 'Global Investments',
+    description: 'Discover curated investment opportunities across global and local markets.',
   },
   {
     icon: Target,
@@ -27,11 +27,11 @@ const features = [
 const testimonials = [
   {
     quote: "Transformed how I manage my money. The AI insights are spot on!",
-    author: "Amina K., Dar es Salaam",
+    author: "Alex J., New York",
   },
   {
-    quote: "Easy to use and perfect for tracking investments in Tanzania.",
-    author: "Juma M., Arusha",
+    quote: "Easy to use and perfect for tracking my global portfolio.",
+    author: "Maria S., London",
   },
 ];
 
@@ -39,7 +39,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-bg-dark via-bg-dark to-bg-dark">
       {/* Hero */}
-      <section className="pt-20 pb-32 relative overflow-hidden">
+      <section className="pt-32 pb-40 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -51,7 +51,7 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="text-xl text-slate-300 mb-8 max-w-lg leading-relaxed">
-                Track expenses, manage budgets, discover investments, and get AI-powered insights tailored for Tanzania.
+                Track expenses, manage budgets, discover investments, and get AI-powered insights tailored for your needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <a
@@ -73,18 +73,18 @@ export default function LandingPage() {
                     <Wallet className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">+ 2,450 TZS</p>
+                    <p className="text-2xl font-bold text-white">+ 2,450.00</p>
                     <p className="text-sm text-slate-400">Monthly Balance</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Income</span>
-                    <span className="font-mono text-emerald-500">5,000 TZS</span>
+                    <span className="font-mono text-emerald-500">5,000.00</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Expenses</span>
-                    <span className="font-mono text-red-500">-2,550 TZS</span>
+                    <span className="font-mono text-red-500">-2,550.00</span>
                   </div>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export default function LandingPage() {
               Everything You Need to Thrive Financially
             </h2>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Built for modern Tanzanians. Secure, intelligent, and beautifully designed.
+              Built for the modern world. Secure, intelligent, and beautifully designed.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -125,7 +125,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Loved by Thousands</h2>
-            <p className="text-xl text-slate-400">Join Tanzanians taking control of their finances.</p>
+            <p className="text-xl text-slate-400">Join users worldwide taking control of their finances.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8">
             {testimonials.map((testimonial, i) => (
@@ -173,7 +173,7 @@ export default function LandingPage() {
                   </div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Manager</h3>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed">AI-powered financial management for Tanzania.</p>
+              <p className="text-slate-500 text-sm leading-relaxed">AI-powered financial management for everyone.</p>
             </div>
             <div>
               <h4 className="font-bold text-white mb-6">Product</h4>
@@ -207,4 +207,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

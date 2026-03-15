@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Camera, X, RefreshCw, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera as CameraIcon, X, RefreshCw, Check } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { scanReceipt } from '../services/geminiService';
 
 interface ReceiptScannerProps {
@@ -8,51 +9,26 @@ interface ReceiptScannerProps {
 }
 
 export default function ReceiptScanner({ onScan, onClose }: ReceiptScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
-
-  const startCamera = async () => {
+  const takePhoto = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraReady(true);
+
+      if (image.base64String) {
+        setCapturedImage(`data:image/jpeg;base64,${image.base64String}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Camera access error:", err);
-      setError("Could not access camera. Please ensure you have granted permission.");
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        setCapturedImage(dataUrl);
+      if (err.message !== "User cancelled photos app") {
+        setError("Could not access camera. Please ensure you have granted permission.");
       }
     }
   };
@@ -86,52 +62,48 @@ export default function ReceiptScanner({ onScan, onClose }: ReceiptScannerProps)
           <X className="w-6 h-6" />
         </button>
 
-        <div className="relative aspect-[3/4] bg-black flex items-center justify-center">
+        <div className="relative aspect-[3/4] bg-black flex flex-col items-center justify-center">
           {!capturedImage ? (
-            <>
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-cover"
-              />
-              {isCameraReady && (
-                <button 
-                  onClick={captureImage}
-                  className="absolute bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-primary/50 flex items-center justify-center shadow-xl active:scale-95 transition-all"
-                >
-                  <div className="w-12 h-12 bg-white rounded-full border-2 border-stone-200" />
-                </button>
-              )}
-            </>
+            <div className="flex flex-col items-center gap-6 p-12">
+              <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center text-primary animate-pulse">
+                <CameraIcon className="w-12 h-12" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-white">Receipt Scanner</h3>
+                <p className="text-stone-400 text-sm px-4">Tap below to capture a clear photo of your receipt. Our AI will automatically extract the details.</p>
+              </div>
+              <button 
+                onClick={takePhoto}
+                className="px-8 py-4 bg-primary hover:bg-secondary text-white font-bold rounded-2xl shadow-xl shadow-primary/25 transition-all flex items-center gap-3"
+              >
+                <CameraIcon className="w-6 h-6" />
+                Open Camera
+              </button>
+            </div>
           ) : (
             <img 
               src={capturedImage} 
               alt="Captured receipt" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain bg-stone-900"
             />
           )}
 
           {isScanning && (
-            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white">
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
               <RefreshCw className="w-12 h-12 animate-spin text-primary mb-4" />
-              <p className="font-bold tracking-widest uppercase text-sm">Analyzing Receipt...</p>
+              <p className="font-bold tracking-widest uppercase text-sm">Analyzing Receipt with AI...</p>
             </div>
           )}
         </div>
 
-        <div className="p-6 bg-card-dark border-t border-border-dark">
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm">
-              {error}
-            </div>
-          )}
+        {capturedImage && (
+          <div className="p-6 bg-card-dark border-t border-border-dark">
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm">
+                {error}
+              </div>
+            )}
 
-          {!capturedImage ? (
-            <div className="text-center">
-              <p className="text-stone-400 text-sm">Position the receipt within the frame and tap the button to capture.</p>
-            </div>
-          ) : (
             <div className="flex gap-4">
               <button 
                 onClick={retake}
@@ -150,10 +122,9 @@ export default function ReceiptScanner({ onScan, onClose }: ReceiptScannerProps)
                 Use Photo
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
