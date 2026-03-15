@@ -2,7 +2,7 @@
 
 ## Step 1: Dependencies & Setup [DONE ✓]
 - Install `react-router-dom` and `@types/react-router-dom` ✓
-- Create `.env` with `GEMINI_API_KEY=AIzaSyAgptmHQQNNL9tGcJFgwzTL-0r2ZC9i22U` ✓
+- Create `.env` with `` ✓
 - `npm install` ✓
 
 ## Step 2: Auth & New Components [DONE ✓]
