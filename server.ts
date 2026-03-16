@@ -5,7 +5,6 @@ import { createClient } from "@libsql/client";
 import path from "path";
 import { fileURLToPath } from "url";
 import session from "express-session";
-import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -64,8 +63,8 @@ async function initDB() {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT NOT NULL,
       name TEXT
     );
   `);
@@ -115,6 +114,13 @@ async function startServer() {
 
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '10mb' }));
+  app.use((req, res, next) => {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+    );
+    next();
+  });
   app.use(session({
     secret: "hela-manager-secret",
     resave: false,
@@ -132,29 +138,28 @@ async function startServer() {
 
   // Auth Routes
   app.post("/api/auth/signup", async (req, res) => {
-    const { email, password, name } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const { username, email, name } = req.body;
     try {
       const result = await db.execute({
-        sql: "INSERT INTO users (email, password, name) VALUES (?, ?, ?)",
-        args: [email, hashedPassword, name]
+        sql: "INSERT INTO users (username, email, name) VALUES (?, ?, ?)",
+        args: [username, email, name]
       });
       req.session.userId = Number(result.lastInsertRowid);
       await sendWelcomeEmail(email, name);
       res.json({ id: req.session.userId });
     } catch (e) {
-      res.status(400).json({ error: "Email already exists" });
+      res.status(400).json({ error: "Username or email already exists" });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
+    const { username, email } = req.body;
     const result = await db.execute({
-      sql: "SELECT * FROM users WHERE email = ?",
-      args: [email]
+      sql: "SELECT * FROM users WHERE username = ?",
+      args: [username]
     });
     const user = result.rows[0];
-    if (user && await bcrypt.compare(password, user.password as string)) {
+    if (user && user.email === email) {
       req.session.userId = Number(user.id);
       res.json({ success: true });
     } else {
@@ -165,7 +170,7 @@ async function startServer() {
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: "Not logged in" });
     const result = await db.execute({
-      sql: "SELECT id, email, name FROM users WHERE id = ?",
+      sql: "SELECT id, username, email, name FROM users WHERE id = ?",
       args: [req.session.userId]
     });
     res.json(result.rows[0]);
@@ -279,6 +284,7 @@ async function startServer() {
       appType: "custom",
     });
     app.use(vite.middlewares);
+    app.use('*', vite.middlewares);
   }
 
   app.listen(PORT, "0.0.0.0", () => {
