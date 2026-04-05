@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw, Key, Download, FileText } from 'lucide-react';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import PieChart2D from '../components/PieChart2D';
+import Spending3D from '../components/Spending3D';
 import InvestmentCards from '../components/InvestmentCards';
 import AIInsights from '../components/AIInsights';
 import BudgetManager from '../components/BudgetManager';
@@ -79,6 +80,14 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [currencyCode, setCurrencyCode] = useState('USD');
+  const [dateFilter, setDateFilter] = useState('All Time');
+  const [newUsername, setNewUsername] = useState(auth.user?.username || '');
+
+  useEffect(() => {
+    if (auth.user?.username) {
+      setNewUsername(auth.user.username);
+    }
+  }, [auth.user?.username]);
 
   const currentCurrency = useMemo(() => 
     CURRENCIES.find(c => c.code === currencyCode) || CURRENCIES[0], 
@@ -86,11 +95,32 @@ export default function Dashboard() {
 
   // Convert data for display based on active currency and LIVE rates
   const transactions = useMemo(() => {
-    return rawTransactions.map(t => ({
+    let filtered = rawTransactions;
+    
+    if (dateFilter !== 'All Time') {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      filtered = rawTransactions.filter(t => {
+        const tDate = new Date(t.date);
+        if (dateFilter === 'This Month') {
+          return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+        }
+        if (dateFilter === 'Last Month') {
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
+        }
+        return true;
+      });
+    }
+
+    return filtered.map(t => ({
         ...t,
         amount: convertCurrency(t.amount, t.currency || 'USD', currencyCode, liveRates)
     }));
-  }, [rawTransactions, currencyCode, liveRates]);
+  }, [rawTransactions, currencyCode, liveRates, dateFilter]);
 
   const budgets = useMemo(() => {
     return rawBudgets.map(b => ({
@@ -310,6 +340,67 @@ export default function Dashboard() {
     auth.logout();
   };
 
+  const handleAccountAccess = async (action: 'login' | 'register') => {
+    const usernameToUse = newUsername.trim();
+    if (!usernameToUse) {
+      showNotification('Please enter a username/key', 'error');
+      return;
+    }
+    const result = await auth.access(usernameToUse, action);
+    if (result.success) {
+      showNotification(`Successfully ${action === 'register' ? 'registered' : 'regained'} account: ${usernameToUse}`);
+      // Refresh all data
+      fetchTransactions();
+      fetchBudgets();
+      fetchGoals();
+    } else {
+      showNotification(result.error || 'Operation failed', 'error');
+    }
+  };
+
+  const handleDownloadData = () => {
+    const data = {
+      transactions: rawTransactions,
+      budgets: rawBudgets,
+      goals: rawGoals,
+      exportedAt: new Date().toISOString(),
+      user: auth.user?.username
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `manager_backup_${auth.user?.username || 'user'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('Data exported successfully!');
+  };
+
+  const handleDownloadCSV = () => {
+    if (rawTransactions.length === 0) {
+      showNotification('No transactions to export', 'error');
+      return;
+    }
+    const headers = ['Date', 'Category', 'Type', 'Amount', 'Currency', 'Description'];
+    const rows = rawTransactions.map(t => [
+      t.date,
+      t.category,
+      t.type,
+      t.amount,
+      t.currency || 'USD',
+      `"${t.description.replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `manager_export_${auth.user?.username || 'user'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('CSV exported successfully!');
+  };
+
   const totals = useMemo(() => {
     return transactions.reduce(
       (acc, curr) => {
@@ -391,7 +482,7 @@ export default function Dashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                Habari, {auth.user?.name || auth.user?.email.split('@')[0] || 'User'}!
+                Habari, {auth.user?.username || 'User'}!
                 {isSyncing && <RefreshCcw className="w-4 h-4 text-primary animate-spin" />}
             </h2>
             <div className="flex items-center gap-2 mt-1">
@@ -432,158 +523,232 @@ export default function Dashboard() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
             </div>
 
+            {/* Time Range Filter */}
+            <div className="relative group hidden md:block">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary z-10" />
+                <select 
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="pl-10 pr-10 py-2.5 bg-card-dark border border-white/10 rounded-xl text-sm font-bold text-white outline-none focus:ring-2 focus:ring-primary/30 appearance-none transition-all cursor-pointer shadow-xl min-w-[140px]"
+                >
+                    <option value="All Time" className="bg-card-dark">All Time</option>
+                    <option value="This Month" className="bg-card-dark">This Month</option>
+                    <option value="Last Month" className="bg-card-dark">Last Month</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
+            </div>
+
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2.5 bg-card-dark rounded-xl border border-border-dark shadow-lg">
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </header>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Balance"
-            amount={balance}
-            icon={<Wallet className="w-6 h-6 text-primary" />}
-            currency={currentCurrency.symbol}
-          />
-          <StatCard
-            title="Total Income"
-            amount={totals.income}
-            icon={<ArrowUpCircle className="w-6 h-6 text-emerald-500" />}
-            currency={currentCurrency.symbol}
-          />
-          <StatCard
-            title="Total Expenses"
-            amount={totals.expenses}
-            icon={<ArrowDownCircle className="w-6 h-6 text-red-500" />}
-            currency={currentCurrency.symbol}
-          />
-          <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Top Spending</span>
-              <div className="p-2 bg-amber-500/10 rounded-lg">
-                <PieChart className="w-5 h-5 text-amber-500" />
-              </div>
-            </div>
-            <div className="text-xl font-bold text-white truncate">
-              {topCategory.category}
-            </div>
-            <div className="text-xs text-stone-500 mt-1 font-bold">
-              {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Form and List */}
-          <div className="lg:col-span-1 space-y-8">
-            <TransactionForm onAdd={handleAddTransaction} currency={currentCurrency.symbol} />
-            <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currentCurrency.symbol} />
-          </div>
+          {activeTab === 'Dashboard' && (
+            <>
+              {/* Mini Stats for Dashboard */}
+              <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <MiniStatCard label="Balance" amount={balance} currency={currentCurrency.symbol} color="text-primary" />
+                <MiniStatCard label="Income" amount={totals.income} currency={currentCurrency.symbol} color="text-emerald-500" />
+                <MiniStatCard label="Expenses" amount={totals.expenses} currency={currentCurrency.symbol} color="text-red-500" />
+                <MiniStatCard label="Top Category" value={topCategory.category} color="text-amber-500" />
+              </div>
 
-          {/* Right Column: Analytics and AI */}
-          <div className="lg:col-span-2 space-y-8">
-            {activeTab === 'Dashboard' && (
-              <>
-                <section className="space-y-4">
-                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
-                    <PieChart className="w-5 h-5 text-primary" />
-                    Spending Analytics
-                  </h2>
-                  <PieChart2D 
-                    data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} 
-                    currency={currentCurrency.code}
-                  />
-                </section>
-
+              {/* Dashboard: Form and Activity */}
+              <div className="lg:col-span-1">
+                <TransactionForm onAdd={handleAddTransaction} currency={currentCurrency.symbol} />
+              </div>
+              <div className="lg:col-span-2 space-y-8">
+                <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currentCurrency.symbol} />
                 <AIInsights
                   insights={insights}
                   loading={loadingInsights}
                   onRefresh={handleRefreshInsights}
                 />
-              </>
-            )}
+              </div>
+            </>
+          )}
 
-            {activeTab === 'Analytics' && (
-              <div className="space-y-8">
-                <section className="space-y-4">
-                  <h2 className="text-xl font-bold px-2 text-white">Detailed Category Breakdown</h2>
+          {activeTab === 'Analytics' && (
+            <div className="lg:col-span-3 space-y-8">
+              {/* Full Stats Grid in Analytics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                  title="Total Balance"
+                  amount={balance}
+                  icon={<Wallet className="w-6 h-6 text-primary" />}
+                  currency={currentCurrency.symbol}
+                />
+                <StatCard
+                  title="Total Income"
+                  amount={totals.income}
+                  icon={<ArrowUpCircle className="w-6 h-6 text-emerald-500" />}
+                  currency={currentCurrency.symbol}
+                />
+                <StatCard
+                  title="Total Expenses"
+                  amount={totals.expenses}
+                  icon={<ArrowDownCircle className="w-6 h-6 text-red-500" />}
+                  currency={currentCurrency.symbol}
+                />
+                <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Top Spending</span>
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <PieChart className="w-5 h-5 text-amber-500" />
+                    </div>
+                  </div>
+                  <div className="text-xl font-bold text-white truncate">
+                    {topCategory.category}
+                  </div>
+                  <div className="text-xs text-stone-500 mt-1 font-bold">
+                    {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    3D Volume Analysis
+                  </h2>
+                  <Spending3D data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} />
+                </div>
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
+                    <PieChart className="w-5 h-5 text-primary" />
+                    Categorized Spending
+                  </h2>
                   <PieChart2D 
                     data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} 
                     currency={currentCurrency.code}
                   />
-                </section>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="glass p-8 rounded-3xl border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest text-sm">Monthly Overview</h3>
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Total Income</span>
-                        <span className="text-emerald-500 font-bold text-lg font-mono">
-                          {currentCurrency.symbol}{totals.income.toLocaleString()}
-                        </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Efficiency & Overview */}
+                <div className="md:col-span-1 glass p-8 rounded-3xl flex flex-col items-center justify-center text-center border border-white/5 bg-white/[0.01]">
+                  <div className="text-sm font-bold text-stone-500 uppercase tracking-[0.2em] mb-6">Savings Efficiency</div>
+                  <div className="relative w-40 h-40 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="80" cy="80" r="75" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/5" />
+                          <circle cx="80" cy="80" r="75" stroke="currentColor" strokeWidth="10" fill="transparent" 
+                              strokeDasharray={471}
+                              strokeDashoffset={471 - (471 * (totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.expenses) / totals.income) * 100))) : 0)) / 100}
+                              className="text-primary transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(16,185,129,0.3)]" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center">
+                          <div className="text-4xl font-bold text-white font-mono">
+                              {totals.income > 0 ? Math.max(0, Math.round(((totals.income - totals.expenses) / totals.income) * 100)) : 0}%
+                          </div>
+                          <div className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-1">Rate</div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Total Expenses</span>
-                        <span className="text-red-500 font-bold text-lg font-mono">
-                          {currentCurrency.symbol}{totals.expenses.toLocaleString()}
-                        </span>
+                  </div>
+                  <p className="mt-8 text-stone-400 text-xs leading-relaxed max-w-[200px]">
+                    Percent of income remaining after all categorized expenses.
+                  </p>
+                </div>
+
+                <div className="md:col-span-1 glass p-8 rounded-3xl border border-white/5 bg-white/[0.01]">
+                  <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Monthly Summary</h3>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-stone-400 text-sm">Income</span>
+                      <span className="text-emerald-500 font-bold font-mono">
+                        +{currentCurrency.symbol}{totals.income.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-stone-400 text-sm">Expenses</span>
+                      <span className="text-red-500 font-bold font-mono">
+                        -{currentCurrency.symbol}{totals.expenses.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-px bg-white/5 my-2"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-bold text-sm">Net Flow</span>
+                      <span className="text-primary font-bold text-lg font-mono">
+                        {currentCurrency.symbol}{(totals.income - totals.expenses).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-1 glass p-8 rounded-3xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Largest Expense</h3>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                        <TrendingUp className="w-6 h-6" />
                       </div>
-                      <div className="h-px bg-white/5 my-2"></div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Net Savings</span>
-                        <span className="text-primary font-bold text-xl font-mono">
-                          {currentCurrency.symbol}{(totals.income - totals.expenses).toLocaleString()}
-                        </span>
+                      <div>
+                        <div className="text-lg font-bold text-white truncate max-w-[120px]">
+                          {topCategory.category}
+                        </div>
+                        <div className="text-xs text-stone-500 font-bold font-mono uppercase">
+                          {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="glass p-8 rounded-3xl flex flex-col items-center justify-center text-center border border-white/5">
-                    <div className="text-sm font-bold text-stone-500 uppercase tracking-[0.2em] mb-6">Financial Efficiency</div>
-                    <div className="relative w-32 h-32 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                            <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                                strokeDasharray={377}
-                                strokeDashoffset={377 - (377 * (totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.expenses) / totals.income) * 100))) : 0)) / 100}
-                                className="text-primary transition-all duration-1000 ease-out" />
-                        </svg>
-                        <div className="absolute text-3xl font-bold text-white font-mono">
-                            {totals.income > 0 ? Math.max(0, Math.round(((totals.income - totals.expenses) / totals.income) * 100)) : 0}%
-                        </div>
-                    </div>
-                    <div className="mt-6 text-stone-500 text-xs font-bold uppercase tracking-widest">Savings Rate</div>
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                    <p className="text-[10px] text-stone-500 leading-normal italic">
+                      "Identifying your largest spending category is the first step toward optimization."
+                    </p>
                   </div>
                 </div>
               </div>
-            )}
 
-            {activeTab === 'Investments' && (
-              <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
-            )}
-
-            {activeTab === 'Budgets' && (
-              <div className="space-y-8">
-                <BudgetManager
-                  budgets={budgets}
-                  spendingByCategory={spendingByCategory}
-                  onSave={handleSaveBudget}
-                  currency={currentCurrency.symbol}
-                />
-                <SavingsGoals
-                  goals={goals}
-                  onAdd={handleAddGoal}
-                  onUpdate={handleUpdateGoal}
-                  onDelete={handleDeleteGoal}
-                  currency={currentCurrency.symbol}
-                />
+              {/* Detailed Breakdown List */}
+              <div className="glass p-8 rounded-3xl border border-white/5 bg-white/[0.01]">
+                <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Category Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {chartData.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <span className="text-stone-300 text-sm font-medium">{item.category}</span>
+                      </div>
+                      <span className="text-white font-mono font-bold text-sm">
+                        {currentCurrency.symbol}{item.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                  {chartData.length === 0 && <p className="col-span-full text-center text-stone-600 italic py-4">No spending data available for this period.</p>}
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {activeTab === 'Settings' && (
-              <div className="space-y-8">
+          {activeTab === 'Investments' && (
+            <div className="lg:col-span-3">
+              <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
+            </div>
+          )}
+
+          {activeTab === 'Budgets' && (
+            <div className="lg:col-span-3 space-y-8">
+              <BudgetManager
+                budgets={budgets}
+                spendingByCategory={spendingByCategory}
+                onSave={handleSaveBudget}
+                currency={currentCurrency.symbol}
+              />
+              <SavingsGoals
+                goals={goals}
+                onAdd={handleAddGoal}
+                onUpdate={handleUpdateGoal}
+                onDelete={handleDeleteGoal}
+                currency={currentCurrency.symbol}
+              />
+            </div>
+          )}
+
+          {activeTab === 'Settings' && (
+            <div className="lg:col-span-3">
                 <div className="glass p-8 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-4 mb-8">
                     <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-primary">
@@ -596,6 +761,52 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="space-y-8">
+                    <section>
+                      <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Account Key Management</h3>
+                      <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.01] space-y-4">
+                        <div className="relative">
+                          <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+                          <input 
+                            type="text" 
+                            value={newUsername}
+                            onChange={(e) => setNewUsername(e.target.value)}
+                            placeholder="Enter username/key..."
+                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-white text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button 
+                            onClick={() => handleAccountAccess('register')}
+                            className="py-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/20 transition-all"
+                          >
+                            Register Key
+                          </button>
+                          <button 
+                            onClick={() => handleAccountAccess('login')}
+                            className="py-3 bg-white/5 border border-white/10 text-stone-300 rounded-xl text-xs font-bold uppercase hover:bg-white/10 transition-all"
+                          >
+                            Regain Data
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button 
+                            onClick={handleDownloadData}
+                            className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-xs font-bold uppercase hover:bg-emerald-500/20 transition-all"
+                          >
+                            <Download className="w-4 h-4" />
+                            JSON Export
+                          </button>
+                          <button 
+                            onClick={handleDownloadCSV}
+                            className="flex items-center justify-center gap-2 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-xl text-xs font-bold uppercase hover:bg-blue-500/20 transition-all"
+                          >
+                            <FileText className="w-4 h-4" />
+                            CSV Export
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+
                     <section>
                       <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Cloud Sync & Security</h3>
                       <div className="space-y-3">
@@ -631,37 +842,11 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </section>
-
-                    <section>
-                      <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Global Preferences</h3>
-                      <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.01]">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-white font-bold text-sm">Base Currency</div>
-                                <div className="text-stone-500 text-xs mt-1">Updates real-time via Frankfurter API</div>
-                            </div>
-                            <div className="relative">
-                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary z-10" />
-                                <select 
-                                    value={currencyCode}
-                                    onChange={(e) => setCurrencyCode(e.target.value)}
-                                    className="pl-10 pr-10 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white outline-none focus:ring-2 focus:ring-primary/30 appearance-none transition-all cursor-pointer min-w-[160px]"
-                                >
-                                    {CURRENCIES.map(c => (
-                                        <option key={c.code} value={c.code} className="bg-card-dark">{c.name} ({c.symbol})</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-                            </div>
-                        </div>
-                      </div>
-                    </section>
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </div>
       </main>
     </div>
   );
@@ -686,6 +871,18 @@ function StatCard({ title, amount, icon, currency }: { title: string; amount: nu
       <div className="text-2xl font-bold font-mono text-white flex items-baseline gap-1">
         <span className="text-xs text-stone-500 font-bold">{currency}</span>
         {amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      </div>
+    </div>
+  );
+}
+
+function MiniStatCard({ label, amount, currency, value, color }: { label: string; amount?: number; currency?: string; value?: string; color: string }) {
+  return (
+    <div className="glass p-3 rounded-xl border border-white/5 bg-white/[0.01]">
+      <div className="text-[10px] font-bold text-stone-500 uppercase tracking-tight mb-1">{label}</div>
+      <div className={`text-sm font-bold truncate ${color}`}>
+        {currency && <span className="text-[10px] mr-0.5 opacity-70">{currency}</span>}
+        {amount !== undefined ? amount.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value}
       </div>
     </div>
   );

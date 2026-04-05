@@ -41,6 +41,7 @@
     "component": "Cloud Sync",
     "issue": "Missing Cloud Backup Option",
     "description": "Users need a way to explicitly sync/upload their data to the cloud to ensure it's available across multiple devices.",
-    "fix": "Add a 'Sync to Cloud' button in the header and a dedicated Cloud Backup management section in Settings. Implement a visual feedback system for sync status (Last Synced timestamp)."
+    "fix": "Add a 'Sync to Cloud' button in the header and a dedicated Cloud Backup management section in Settings. Implement a visual feedback system for sync status (Last Synced timestamp).",
+    "status": "COMPLETED"
   }
 ]

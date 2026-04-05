@@ -4,14 +4,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 interface User {
   id: string;
-  email: string;
-  name?: string;
+  username: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name?: string) => Promise<boolean>;
+  access: (username: string, action: 'login' | 'register') => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -31,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
         }
       } catch (err) {
-        console.error("Auth check failed:", err);
+        // Not logged in is fine
       } finally {
         setLoading(false);
       }
@@ -39,51 +37,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const access = async (username: string, action: 'login' | 'register'): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, action }),
       });
-      if (res.ok) {
-        const userData = await res.json();
-        const meRes = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          setUser(meData);
-        }
-        return true;
+      
+      const contentType = res.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        return { success: false, error: `Server error (${res.status}): ${text.slice(0, 100)}` };
       }
-      return false;
+
+      if (res.ok) {
+        setUser({ id: data.id, username: data.username });
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Access failed' };
     } catch (err) {
-      console.error("Login failed:", err);
-      return false;
+      console.error("Access failed:", err);
+      return { success: false, error: "Connection error. Make sure the server is running." };
     }
   };
 
-  const register = async (email: string, password: string, name?: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-      if (res.ok) {
-        const userData = await res.json();
-        const meRes = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          setUser(meData);
-        }
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Registration failed:", err);
-      return false;
-    }
-  };
+  const login = async (email: string, password: string) => { return false; }; // Legacy stub
+  const register = async (email: string, password: string, name?: string) => { return false; }; // Legacy stub
 
   const logout = async () => {
     try {
@@ -96,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, access, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

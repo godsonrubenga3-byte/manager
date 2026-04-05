@@ -5,8 +5,6 @@ import { createClient } from "@libsql/client";
 import path from "path";
 import { fileURLToPath } from "url";
 import session from "express-session";
-import bcrypt from "bcryptjs";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -26,94 +24,77 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Email Transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-async function sendWelcomeEmail(email: string, name: string) {
-  if (!process.env.SMTP_HOST) return;
-  try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"Manager App" <no-reply@managerapp.com>',
-      to: email,
-      subject: "Welcome to Manager App! 🚀",
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #10b981;">Welcome to Manager App! 🚀</h2>
-          <p>Hello <strong>${name || 'there'}</strong>,</p>
-          <p>We're excited to help you manage your finances efficiently.</p>
-          <p>Start your journey to financial freedom today!</p>
-          <br />
-          <p>Best regards,<br /><strong>The Manager Team</strong></p>
-        </div>
-      `,
-    });
-  } catch (error) {
-    console.error("Error sending welcome email:", error);
-  }
-}
-
 async function initDB() {
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT
-    );
-  `);
+  try {
+    console.log("Connecting to database:", process.env.TURSO_DATABASE_URL ? "Turso Cloud" : "Local SQLite");
+    
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL
+      );
+    `);
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      amount REAL NOT NULL,
-      currency TEXT NOT NULL DEFAULT 'USD',
-      category TEXT NOT NULL,
-      description TEXT,
-      image TEXT,
-      date TEXT NOT NULL,
-      type TEXT CHECK(type IN ('income', 'expense')) NOT NULL
-    );
-  `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        category TEXT NOT NULL,
+        description TEXT,
+        image TEXT,
+        date TEXT NOT NULL,
+        type TEXT CHECK(type IN ('income', 'expense')) NOT NULL
+      );
+    `);
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS budgets (
-      user_id INTEGER NOT NULL,
-      category TEXT NOT NULL,
-      limit_amount REAL NOT NULL,
-      currency TEXT NOT NULL DEFAULT 'USD',
-      PRIMARY KEY (user_id, category)
-    );
-  `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS budgets (
+        user_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        limit_amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        PRIMARY KEY (user_id, category)
+      );
+    `);
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS goals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      target_amount REAL NOT NULL,
-      current_amount REAL NOT NULL,
-      currency TEXT NOT NULL DEFAULT 'USD',
-      deadline TEXT
-    );
-  `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        target_amount REAL NOT NULL,
+        current_amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        deadline TEXT
+      );
+    `);
+    console.log("Database initialized successfully.");
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+    throw err;
+  }
 }
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  await initDB();
+  try {
+    await initDB();
+  } catch (err) {
+    console.error("Server starting without database initialization due to error.");
+  }
 
   app.use(cors({ origin: true, credentials: true }));
+  app.use((req, res, next) => {
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://generativelanguage.googleapis.com https://*.googleapis.com; img-src 'self' data: blob: *; connect-src 'self' https://generativelanguage.googleapis.com https://api.frankfurter.app https://*.googleapis.com ws: wss:; style-src 'self' 'unsafe-inline' *; font-src 'self' data: *; upgrade-insecure-requests;"
+    );
+    next();
+  });
   app.use(express.json({ limit: '10mb' }));
   app.use(session({
     secret: "hela-manager-secret",
@@ -131,43 +112,50 @@ async function startServer() {
   };
 
   // Auth Routes
-  app.post("/api/auth/signup", async (req, res) => {
-    const { email, password, name } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+  app.post("/api/auth/access", async (req, res) => {
+    const { username, action } = req.body;
+    
     try {
-      const result = await db.execute({
-        sql: "INSERT INTO users (email, password, name) VALUES (?, ?, ?)",
-        args: [email, hashedPassword, name]
-      });
-      req.session.userId = Number(result.lastInsertRowid);
-      await sendWelcomeEmail(email, name);
-      res.json({ id: req.session.userId });
+      if (action === 'register') {
+        const result = await db.execute({
+          sql: "INSERT INTO users (username) VALUES (?)",
+          args: [username]
+        });
+        req.session.userId = Number(result.lastInsertRowid);
+        res.json({ id: req.session.userId, username, isNew: true });
+      } else {
+        // Login / Regain
+        const result = await db.execute({
+          sql: "SELECT * FROM users WHERE username = ?",
+          args: [username]
+        });
+        const user = result.rows[0];
+        if (user) {
+          req.session.userId = Number(user.id);
+          res.json({ success: true, id: user.id, username: user.username });
+        } else {
+          res.status(404).json({ error: "Username not found. Please register it first." });
+        }
+      }
     } catch (e) {
-      res.status(400).json({ error: "Email already exists" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    const result = await db.execute({
-      sql: "SELECT * FROM users WHERE email = ?",
-      args: [email]
-    });
-    const user = result.rows[0];
-    if (user && await bcrypt.compare(password, user.password as string)) {
-      req.session.userId = Number(user.id);
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ error: "Invalid credentials" });
+      if (action === 'register') {
+        res.status(400).json({ error: "Username already taken" });
+      } else {
+        res.status(500).json({ error: "Server error" });
+      }
     }
   });
 
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: "Not logged in" });
     const result = await db.execute({
-      sql: "SELECT id, email, name FROM users WHERE id = ?",
+      sql: "SELECT id, username FROM users WHERE id = ?",
       args: [req.session.userId]
     });
+    if (!result.rows[0]) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "User session expired" });
+    }
     res.json(result.rows[0]);
   });
 
@@ -279,6 +267,17 @@ async function startServer() {
       appType: "custom",
     });
     app.use(vite.middlewares);
+    app.get("*", async (req, res, next) => {
+        const url = req.originalUrl;
+        try {
+          let template = await (await import("fs")).promises.readFile(path.resolve(__dirname, "index.html"), "utf-8");
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          next(e);
+        }
+    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
