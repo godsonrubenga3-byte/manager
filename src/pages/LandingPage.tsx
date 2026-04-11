@@ -1,5 +1,6 @@
 import React from 'react';
-import { Wallet, PieChart, TrendingUp, Target, Shield, Brain, ArrowRight, Users } from 'lucide-react';
+import { Wallet, PieChart, TrendingUp, Target, Shield, Brain, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const features = [
   {
@@ -54,16 +55,16 @@ export default function LandingPage() {
                 Track expenses, manage budgets, discover investments, and get AI-powered insights tailored for your needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="group bg-primary hover:bg-secondary text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:shadow-2xl hover:shadow-primary/25 transition-all duration-300 flex items-center gap-2"
                 >
                   Get Started Free
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-                <a href="/dashboard" className="border-2 border-slate-700/50 hover:border-white/50 text-slate-300 px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white/5 transition-all duration-300">
+                </Link>
+                <Link to="/dashboard" className="border-2 border-slate-700/50 hover:border-white/50 text-slate-300 px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white/5 transition-all duration-300">
                   View Dashboard
-                </a>
+                </Link>
               </div>
             </div>
             <div className="relative">
@@ -151,12 +152,12 @@ export default function LandingPage() {
               Sign up today and get complete access to AI-powered financial management.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/register" className="bg-primary hover:bg-secondary text-white px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-primary/25 transition-all duration-300">
+                <Link to="/login" className="bg-primary hover:bg-secondary text-white px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-primary/25 transition-all duration-300">
                 Create Free Account
-              </a>
-              <a href="/login" className="border-2 border-slate-700/50 hover:border-white/50 text-slate-300 px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/5 transition-all duration-300">
+              </Link>
+              <Link to="/login" className="border-2 border-slate-700/50 hover:border-white/50 text-slate-300 px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/5 transition-all duration-300">
                 Sign In
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -178,9 +179,9 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-white mb-6">Product</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Investments</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">AI Insights</a></li>
+                <li><Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                <li><Link to="/dashboard" className="hover:text-white transition-colors">Investments</Link></li>
+                <li><Link to="/dashboard" className="hover:text-white transition-colors">AI Insights</Link></li>
               </ul>
             </div>
             <div>

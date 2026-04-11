@@ -1,17 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import { Preferences } from '@capacitor/preferences';
 
 interface User {
   id: string;
-  email: string;
-  name?: string;
+  username: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name?: string) => Promise<boolean>;
+  access: (username: string, action: 'login' | 'register') => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -25,13 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
+        const { value } = await Preferences.get({ key: 'manager_user' });
+        if (value) {
+          setUser(JSON.parse(value));
         }
       } catch (err) {
-        console.error("Auth check failed:", err);
+        console.error("Failed to load user from preferences", err);
       } finally {
         setLoading(false);
       }
@@ -39,55 +35,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const access = async (username: string, action: 'login' | 'register'): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch('/api/auth/access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, action })
       });
-      if (res.ok) {
-        const userData = await res.json();
-        const meRes = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          setUser(meData);
-        }
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Login failed:", err);
-      return false;
-    }
-  };
 
-  const register = async (email: string, password: string, name?: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-      if (res.ok) {
-        const userData = await res.json();
-        const meRes = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          setUser(meData);
-        }
-        return true;
+      const result = await response.json();
+
+      if (response.ok) {
+        const newUser = { id: result.id.toString(), username: result.username };
+        await Preferences.set({ key: 'manager_user', value: JSON.stringify(newUser) });
+        setUser(newUser);
+        return { success: true };
+      } else {
+        return { success: false, error: result.error || "Access failed" };
       }
-      return false;
     } catch (err) {
-      console.error("Registration failed:", err);
-      return false;
+      console.error("Access failed:", err);
+      return { success: false, error: "Server connection error." };
     }
   };
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await Preferences.remove({ key: 'manager_user' });
       setUser(null);
     } catch (err) {
       console.error("Logout failed:", err);
@@ -96,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, access, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

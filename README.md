@@ -53,6 +53,35 @@ npx cap sync android
 npx cap run android
 ```
 
+### Building the Android APK
+To generate a standalone APK for your Android device:
+
+1. **Build the Web Project**:
+   ```bash
+   npm run build
+   ```
+
+2. **Sync with Capacitor**:
+   ```bash
+   npx cap sync android
+   ```
+
+3. **Generate the APK**:
+   *   **Using command line (Linux/macOS)**:
+       ```bash
+       cd android && ./gradlew assembleDebug
+       ```
+   *   **Using command line (Windows)**:
+       ```bash
+       cd android && gradlew.bat assembleDebug
+       ```
+
+4. **Locate the APK**:
+   The generated debug APK will be located at:
+   `android/app/build/outputs/apk/debug/app-debug.apk`
+
+*Note: Ensure you have the Android SDK and Java (JDK 17+) installed on your machine to build successfully.*
+
 ## 🏗 Build for Production
 ```bash
 npm run build

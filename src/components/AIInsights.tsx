@@ -19,6 +19,7 @@ export default function AIInsights({ insights, loading, onRefresh }: AIInsightsP
         <h2 className="text-xl font-bold flex items-center gap-2 text-white">
           <Sparkles className="w-6 h-6 text-primary" />
           AI Financial Advisor
+          <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">Pending</span>
         </h2>
         <button
           onClick={onRefresh}

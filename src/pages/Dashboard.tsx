@@ -1,17 +1,27 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw, Key, Download, FileText, Briefcase, Activity, CheckSquare, Database, Calendar as CalendarIcon, CloudUpload } from 'lucide-react';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import PieChart2D from '../components/PieChart2D';
+import Spending3D from '../components/Spending3D';
 import InvestmentCards from '../components/InvestmentCards';
 import AIInsights from '../components/AIInsights';
 import BudgetManager from '../components/BudgetManager';
 import SavingsGoals from '../components/SavingsGoals';
 import Notification, { NotificationType } from '../components/Notification';
+import Calendar from '../components/Calendar';
+import TradingJournal from '../components/TradingJournal';
+import TradingSimulator from '../components/TradingSimulator';
+import TradingAnalytics from '../components/TradingAnalytics';
+import InvestingForm from '../components/InvestingForm';
 import { getAIInsights, Transaction as GeminiTransaction } from '../services/geminiService';
 import { Preferences } from '@capacitor/preferences';
 import { convertCurrency, fetchLiveRates, STATIC_EXCHANGE_RATES } from '../utils/currency';
+import { fetchMarketData } from '../services/marketDataService';
+import { requestNotificationPermissions } from '../utils/notifications';
+import { isSameDay } from 'date-fns';
 
 // Extend Transaction to include currency from DB
 interface Transaction extends GeminiTransaction {
@@ -74,11 +84,88 @@ export default function Dashboard() {
     await Preferences.remove({ key: 'last_synced' });
   };
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('Dashboard');
+  
+  // Map path to tab name
+  const pathToTab: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/analytics': 'Analytics',
+    '/investments': 'Investments',
+    '/tradingjournal': 'Trading',
+    '/calendar': 'Calendar',
+    '/budgets': 'Budgets',
+    '/settings': 'Settings'
+  };
+
+  // Reverse map for navigation
+  const tabToPath: Record<string, string> = {
+    'Dashboard': '/dashboard',
+    'Analytics': '/analytics',
+    'Investments': '/investments',
+    'Trading': '/tradingjournal',
+    'Calendar': '/calendar',
+    'Budgets': '/budgets',
+    'Settings': '/settings'
+  };
+
+  const activeTab = pathToTab[location.pathname] || 'Dashboard';
   const [currencyCode, setCurrencyCode] = useState('USD');
+  const [dateFilter, setDateFilter] = useState('All Time');
+  const [newUsername, setNewUsername] = useState(auth.user?.username || '');
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // New Features State
+  const [todos, setTodos] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [memories, setMemories] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [trades, setTrades] = useState<any[]>([]);
+  const [manualInvestments, setManualInvestments] = useState<any[]>([]);
+  const [tradingCapital, setTradingCapital] = useState({ invested_amount: 0, currency: 'USD' });
+  const [liveAssetPrices, setLiveAssetPrices] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+
+  // Poll real-time asset prices for active trades & UI
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrices = async () => {
+      const symbols = ['BTCUSDT', 'BBTCUSD', 'GBPJPY', 'XAUUSD', 'UMJATZS'];
+      const newPrices: Record<string, number | null> = {};
+      for (const symbol of symbols) {
+        newPrices[symbol] = await fetchMarketData(symbol);
+      }
+      if (isMounted) setLiveAssetPrices(prev => ({ ...prev, ...newPrices }));
+    };
+
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 10000); // Every 10 seconds
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (auth.user?.username) {
+      setNewUsername(auth.user.username);
+    }
+  }, [auth.user?.username]);
 
   const currentCurrency = useMemo(() => 
     CURRENCIES.find(c => c.code === currencyCode) || CURRENCIES[0], 
@@ -86,11 +173,32 @@ export default function Dashboard() {
 
   // Convert data for display based on active currency and LIVE rates
   const transactions = useMemo(() => {
-    return rawTransactions.map(t => ({
+    let filtered = rawTransactions;
+    
+    if (dateFilter !== 'All Time') {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      filtered = rawTransactions.filter(t => {
+        const tDate = new Date(t.date);
+        if (dateFilter === 'This Month') {
+          return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+        }
+        if (dateFilter === 'Last Month') {
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
+        }
+        return true;
+      });
+    }
+
+    return filtered.map(t => ({
         ...t,
         amount: convertCurrency(t.amount, t.currency || 'USD', currencyCode, liveRates)
     }));
-  }, [rawTransactions, currencyCode, liveRates]);
+  }, [rawTransactions, currencyCode, liveRates, dateFilter]);
 
   const budgets = useMemo(() => {
     return rawBudgets.map(b => ({
@@ -106,6 +214,29 @@ export default function Dashboard() {
         current_amount: convertCurrency(g.current_amount, g.currency || 'USD', currencyCode, liveRates)
     }));
   }, [rawGoals, currencyCode, liveRates]);
+
+  const convertedTrades = useMemo(() => {
+    return trades.map(t => ({
+      ...t,
+      margin_invested: convertCurrency(t.margin_invested, t.currency || 'USD', currencyCode, liveRates),
+      pnl: convertCurrency(t.pnl || 0, t.currency || 'USD', currencyCode, liveRates)
+    }));
+  }, [trades, currencyCode, liveRates]);
+
+  const convertedTradingCapital = useMemo(() => {
+    return {
+      ...tradingCapital,
+      invested_amount: convertCurrency(tradingCapital.invested_amount, tradingCapital.currency || 'USD', currencyCode, liveRates)
+    };
+  }, [tradingCapital, currencyCode, liveRates]);
+
+  const convertedManualInvestments = useMemo(() => {
+    return manualInvestments.map(inv => ({
+      ...inv,
+      buy_price: convertCurrency(inv.buy_price, inv.currency || 'USD', currencyCode, liveRates),
+      total_cost: convertCurrency(inv.total_cost, inv.currency || 'USD', currencyCode, liveRates)
+    }));
+  }, [manualInvestments, currencyCode, liveRates]);
 
   useEffect(() => {
     const initRates = async () => {
@@ -141,148 +272,218 @@ export default function Dashboard() {
   const handleSync = async (silent = false) => {
     if (!silent) setIsSyncing(true);
     try {
+      // 1. Push Phase: Upload local offline data to database
+      const localTrades = await getCachedData<any[]>('trades') || [];
+      const localCapital = await getCachedData<any>('trading_capital');
+
+      // Only push if there's actual data to push
+      if (localTrades.length > 0 || (localCapital && localCapital.invested_amount > 0)) {
+        await Promise.all([
+          ...localTrades.map(trade => 
+            fetch('/api/trades', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(trade)
+            }).catch(() => null)
+          ),
+          localCapital ? fetch('/api/trading-capital', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localCapital)
+          }).catch(() => null) : Promise.resolve()
+        ]);
+      }
+
+      // 2. Pull Phase: Fetch latest from server/local
       await Promise.all([
         fetchTransactions(),
         fetchBudgets(),
-        fetchGoals()
+        fetchGoals(),
+        fetchTodos(),
+        fetchEvents(),
+        fetchMemories(),
+        fetchReminders(),
+        fetchTrades(),
+        fetchTradingCapital(),
+        fetchManualInvestments()
       ]);
+
       const now = new Date().toLocaleString();
       setLastSynced(now);
       await Preferences.set({ key: 'last_synced', value: now });
-      if (!silent) showNotification('Cloud Data Synchronized Successfully!');
+      if (!silent) showNotification('Cloud Sync Complete!');
     } catch (err) {
       console.error("Sync failed:", err);
-      if (!silent) showNotification('Failed to sync with cloud. Check connection.', 'error');
+      if (!silent) showNotification('Sync encountered issues.', 'error');
     } finally {
       if (!silent) setTimeout(() => setIsSyncing(false), 800);
     }
   };
 
   const fetchTransactions = async () => {
-    const cached = await getCachedData<Transaction[]>('transactions');
-    if (cached) setRawTransactions(cached);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/transactions`);
-      if (res.ok) {
-        const data = await res.json();
-        setRawTransactions(data);
-        await setCachedData('transactions', data);
-      }
-    } catch (err) {
-      console.error("Fetch transactions failed:", err);
-    }
+    const data = await getCachedData<Transaction[]>('transactions');
+    setRawTransactions(data || []);
   };
 
   const fetchInvestments = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/investments`);
-      if (res.ok) {
-        const data = await res.json();
-        setInvestments(data);
-      }
-    } catch (err) {
-      console.error("Fetch investments failed:", err);
-    }
+    // These are static for now as they were just info
+    setInvestments([
+      { name: "Index Funds (S&P 500)", expectedReturn: "8-10% p.a.", risk: "Moderate", minAmount: "Varies", description: "Global stock market tracking." },
+      { name: "High-Yield Savings", expectedReturn: "4-5% p.a.", risk: "Very Low", minAmount: "None", description: "Safe emergency funds." }
+    ] as any);
   };
 
   const fetchBudgets = async () => {
-    const cached = await getCachedData<any[]>('budgets');
-    if (cached) setRawBudgets(cached);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/budgets`);
-      if (res.ok) {
-        const data = await res.json();
-        setRawBudgets(data);
-        await setCachedData('budgets', data);
-      }
-    } catch (err) {
-      console.error("Fetch budgets failed:", err);
-    }
+    const data = await getCachedData<any[]>('budgets');
+    setRawBudgets(data || []);
   };
 
   const fetchGoals = async () => {
-    const cached = await getCachedData<any[]>('goals');
-    if (cached) setRawGoals(cached);
+    const data = await getCachedData<any[]>('goals');
+    setRawGoals(data || []);
+  };
+
+  const fetchTodos = async () => {
+    const data = await getCachedData<any[]>('todos');
+    setTodos(data || []);
+  };
+
+  const fetchEvents = async () => {
+    const data = await getCachedData<any[]>('events');
+    setEvents(data || []);
+  };
+
+  const fetchMemories = async () => {
+    const data = await getCachedData<any[]>('memories');
+    setMemories(data || []);
+  };
+
+  const fetchReminders = async () => {
+    const data = await getCachedData<any[]>('reminders');
+    setReminders(data || []);
+  };
+
+  const fetchTrades = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/goals`);
+      const res = await fetch('/api/trades');
       if (res.ok) {
         const data = await res.json();
-        setRawGoals(data);
-        await setCachedData('goals', data);
+        setTrades(data);
+        await setCachedData('trades', data);
+        return;
       }
-    } catch (err) {
-      console.error("Fetch goals failed:", err);
-    }
+    } catch (e) {}
+    const data = await getCachedData<any[]>('trades');
+    setTrades(data || []);
+  };
+
+  const fetchTradingCapital = async () => {
+    try {
+      const res = await fetch('/api/trading-capital');
+      if (res.ok) {
+        const data = await res.json();
+        setTradingCapital(data);
+        await setCachedData('trading_capital', data);
+        return;
+      }
+    } catch (e) {}
+    const data = await getCachedData<any>('trading_capital');
+    setTradingCapital(data || { invested_amount: 0, currency: 'USD' });
+  };
+
+  const fetchManualInvestments = async () => {
+    const data = await getCachedData<any[]>('manual_investments');
+    setManualInvestments(data || []);
+  };
+
+  const handleAddManualInvestment = async (investment: any) => {
+    const current = await getCachedData<any[]>('manual_investments') || [];
+    const newItem = { ...investment, id: Date.now() };
+    const updated = [newItem, ...current];
+    await setCachedData('manual_investments', updated);
+    setManualInvestments(updated);
+    showNotification('Investment added to portfolio!');
+  };
+
+  const handleDeleteManualInvestment = async (id: number) => {
+    const current = await getCachedData<any[]>('manual_investments') || [];
+    const updated = current.filter(i => i.id !== id);
+    await setCachedData('manual_investments', updated);
+    setManualInvestments(updated);
+    showNotification('Investment removed.');
   };
 
   const handleAddTransaction = async (newTransaction: any) => {
-    const res = await fetch(`${API_BASE_URL}/api/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newTransaction, currency: currencyCode }),
-    });
-    if (res.ok) {
-      if (newTransaction.image) {
-        showNotification('Receipt & Transaction Uploaded Successfully!');
-      } else {
-        showNotification('Transaction Saved Successfully!');
-      }
-      fetchTransactions();
-    } else {
-      showNotification('Failed to save transaction.', 'error');
-    }
+    const current = await getCachedData<Transaction[]>('transactions') || [];
+    const newItem = { 
+      ...newTransaction, 
+      id: Date.now(), 
+      currency: currencyCode,
+      user_id: auth.user?.id || 1 
+    };
+    const updated = [newItem, ...current];
+    await setCachedData('transactions', updated);
+    setRawTransactions(updated);
+    showNotification('Transaction Saved Locally!');
   };
 
   const handleDeleteTransaction = async (id: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/transactions/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showNotification('Transaction Deleted.');
-      fetchTransactions();
-    }
+    const current = await getCachedData<Transaction[]>('transactions') || [];
+    const updated = current.filter(t => t.id !== id);
+    await setCachedData('transactions', updated);
+    setRawTransactions(updated);
+    showNotification('Transaction Deleted.');
   };
 
   const handleSaveBudget = async (category: string, limit_amount: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/budgets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, limit_amount, currency: currencyCode }),
-    });
-    if (res.ok) {
-      showNotification(`${category} Budget Updated!`);
-      fetchBudgets();
+    const current = await getCachedData<any[]>('budgets') || [];
+    const existingIndex = current.findIndex(b => b.category === category);
+    const newBudget = { category, limit_amount, currency: currencyCode, user_id: auth.user?.id || 1 };
+    
+    let updated;
+    if (existingIndex > -1) {
+      updated = [...current];
+      updated[existingIndex] = newBudget;
+    } else {
+      updated = [...current, newBudget];
     }
+    
+    await setCachedData('budgets', updated);
+    setRawBudgets(updated);
+    showNotification(`${category} Budget Updated!`);
   };
 
   const handleAddGoal = async (name: string, target_amount: number, current_amount: number, deadline?: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, target_amount, current_amount, currency: currencyCode, deadline }),
-    });
-    if (res.ok) {
-      showNotification(`Goal "${name}" Created!`);
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const newGoal = { 
+      id: Date.now(), 
+      name, 
+      target_amount, 
+      current_amount, 
+      currency: currencyCode, 
+      deadline,
+      user_id: auth.user?.id || 1 
+    };
+    const updated = [...current, newGoal];
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification(`Goal "${name}" Created!`);
   };
 
   const handleUpdateGoal = async (id: number, new_current_amount: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_amount: new_current_amount }),
-    });
-    if (res.ok) {
-      showNotification('Savings Progress Updated!');
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const updated = current.map(g => g.id === id ? { ...g, current_amount: new_current_amount } : g);
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification('Savings Progress Updated!');
   };
 
   const handleDeleteGoal = async (id: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showNotification('Goal Removed.');
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const updated = current.filter(g => g.id !== id);
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification('Goal Removed.');
   };
 
   const handleRefreshInsights = async () => {
@@ -295,20 +496,301 @@ export default function Dashboard() {
 
   const handleClearData = async () => {
     if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      const res = await fetch(`${API_BASE_URL}/api/settings/clear-data`, { method: 'POST' });
-      if (res.ok) {
-        await clearCache();
-        setRawTransactions([]);
-        setRawBudgets([]);
-        setRawGoals([]);
-        showNotification('All Data Cleared Successfully.', 'info');
-      }
+      await clearCache();
+      setRawTransactions([]);
+      setRawBudgets([]);
+      setRawGoals([]);
+      setTodos([]);
+      setTrades([]);
+      setManualInvestments([]);
+      setTradingCapital({ invested_amount: 0, currency: 'USD' });
+      showNotification('All Data Cleared Successfully.', 'info');
     }
   };
 
   const handleLogout = () => {
     auth.logout();
   };
+
+  const handleAccountAccess = async (action: 'login' | 'register') => {
+    const usernameToUse = newUsername.trim();
+    if (!usernameToUse) {
+      showNotification('Please enter a username/key', 'error');
+      return;
+    }
+    const result = await auth.access(usernameToUse, action);
+    if (result.success) {
+      showNotification(`Successfully ${action === 'register' ? 'registered' : 'logged in'}: ${usernameToUse}`);
+      handleSync(true);
+    } else {
+      showNotification(result.error || 'Operation failed', 'error');
+    }
+  };
+
+  const handleDownloadData = () => {
+    const data = {
+      transactions: rawTransactions,
+      budgets: rawBudgets,
+      goals: rawGoals,
+      todos,
+      events,
+      memories,
+      reminders,
+      trades,
+      manualInvestments,
+      tradingCapital,
+      exportedAt: new Date().toISOString(),
+      user: auth.user?.username
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `manager_backup_${auth.user?.username || 'user'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    showNotification('Data exported successfully!');
+  };
+
+  const handleDownloadCSV = () => {
+    if (rawTransactions.length === 0) {
+      showNotification('No transactions to export', 'error');
+      return;
+    }
+    const headers = ['Date', 'Category', 'Type', 'Amount', 'Currency', 'Description'];
+    const rows = rawTransactions.map(t => [
+      t.date,
+      t.category,
+      t.type,
+      t.amount,
+      t.currency || 'USD',
+      `"${t.description.replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `manager_export_${auth.user?.username || 'user'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    showNotification('CSV exported successfully!');
+  };
+
+  const handleAddTodo = async (task: string, timeFrame?: string) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const newTodo = { 
+      id: Date.now(), 
+      task, 
+      is_completed: 0, 
+      created_at: new Date().toISOString(),
+      time_frame: timeFrame 
+    };
+    const updated = [newTodo, ...current];
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleToggleTodo = async (id: number, currentStatus: number) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const updated = current.map(t => t.id === id ? { ...t, is_completed: !currentStatus } : t);
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleDeleteTodo = async (id: number) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const updated = current.filter(t => t.id !== id);
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleAddEvent = async (event: any) => {
+    const current = await getCachedData<any[]>('events') || [];
+    const newEvent = { ...event, id: Date.now() };
+    const updated = [newEvent, ...current];
+    await setCachedData('events', updated);
+    setEvents(updated);
+    showNotification('Event added to calendar!');
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    const current = await getCachedData<any[]>('events') || [];
+    const updated = current.filter(e => e.id !== id);
+    await setCachedData('events', updated);
+    setEvents(updated);
+  };
+
+  const handleAddMemory = async (memory: any) => {
+    const current = await getCachedData<any[]>('memories') || [];
+    const newMemory = { ...memory, id: Date.now() };
+    const updated = [newMemory, ...current];
+    await setCachedData('memories', updated);
+    setMemories(updated);
+    showNotification('New memory recorded!');
+  };
+
+  const handleDeleteMemory = async (id: number) => {
+    const current = await getCachedData<any[]>('memories') || [];
+    const updated = current.filter(m => m.id !== id);
+    await setCachedData('memories', updated);
+    setMemories(updated);
+  };
+
+  const handleAddReminder = async (reminder: any) => {
+    const current = await getCachedData<any[]>('reminders') || [];
+    const newReminder = { ...reminder, id: Date.now() };
+    const updated = [newReminder, ...current];
+    await setCachedData('reminders', updated);
+    setReminders(updated);
+    showNotification('Reminder set!');
+  };
+
+  const handleDeleteReminder = async (id: number) => {
+    const current = await getCachedData<any[]>('reminders') || [];
+    const updated = current.filter(r => r.id !== id);
+    await setCachedData('reminders', updated);
+    setReminders(updated);
+  };
+
+  const handlePlaceTrade = async (trade: any) => {
+    const newTrade = { ...trade, id: Date.now(), status: 'open', currency: currencyCode, created_at: new Date().toISOString() };
+    
+    // Attempt Server
+    try {
+      const res = await fetch('/api/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTrade)
+      });
+      if (res.ok) {
+        showNotification('Trade journaled to database!');
+        fetchTrades(); // Refresh from server
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    const current = await getCachedData<any[]>('trades') || [];
+    const updated = [newTrade, ...current];
+    await setCachedData('trades', updated);
+    setTrades(updated);
+    showNotification('Trade journaled locally (Offline).');
+  };
+
+  const handleCloseTrade = async (id: number, pnl: number) => {
+    // Attempt Server
+    try {
+      const res = await fetch(`/api/trades/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed', pnl, closed_at: new Date().toISOString() })
+      });
+      if (res.ok) {
+        // Also update capital on server
+        const newCapitalTotal = convertedTradingCapital.invested_amount + pnl;
+        await fetch('/api/trading-capital', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invested_amount: newCapitalTotal, currency: currencyCode })
+        });
+        fetchTrades();
+        fetchTradingCapital();
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    const current = await getCachedData<any[]>('trades') || [];
+    const updated = current.map(t => t.id === id ? { ...t, status: 'closed', pnl, closed_at: new Date().toISOString() } : t);
+    await setCachedData('trades', updated);
+    setTrades(updated);
+
+    const newCapitalTotal = convertedTradingCapital.invested_amount + pnl;
+    const newCapital = { invested_amount: newCapitalTotal, currency: currencyCode };
+    await setCachedData('trading_capital', newCapital);
+    setTradingCapital(newCapital);
+  };
+
+  const handleAllocateCapital = async (amount: number) => {
+    const newCapital = { invested_amount: amount, currency: currencyCode };
+    
+    // Attempt Server
+    try {
+      const res = await fetch('/api/trading-capital', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCapital)
+      });
+      if (res.ok) {
+        showNotification('Capital updated in database!');
+        fetchTradingCapital();
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    await setCachedData('trading_capital', newCapital);
+    setTradingCapital(newCapital);
+    showNotification('Capital updated locally (Offline).');
+  };
+
+  // Automated Logic: Convert passed events to memories
+  useEffect(() => {
+    const processPassedEvents = async () => {
+      const now = new Date();
+      const passedEvents = events.filter(e => {
+        const eDate = new Date(e.date);
+        return eDate < now && !isSameDay(eDate, now);
+      });
+
+      if (passedEvents.length > 0) {
+        let changed = false;
+        const currentMemories = await getCachedData<any[]>('memories') || [];
+        const currentEvents = await getCachedData<any[]>('events') || [];
+        
+        let updatedMemories = [...currentMemories];
+        let updatedEvents = [...currentEvents];
+
+        passedEvents.forEach(e => {
+          const alreadyMemory = currentMemories.some(m => m.title === e.title && m.date === e.date);
+          if (!alreadyMemory) {
+            updatedMemories.push({
+              id: Date.now() + Math.random(),
+              title: e.title,
+              date: e.date,
+              description: e.description,
+              songs_of_the_day: e.songs_of_the_day
+            });
+            updatedEvents = updatedEvents.filter(ev => ev.id !== e.id);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          await setCachedData('memories', updatedMemories);
+          await setCachedData('events', updatedEvents);
+          setMemories(updatedMemories);
+          setEvents(updatedEvents);
+          showNotification('Passed events moved to memories!');
+        }
+      }
+    };
+
+    const interval = setInterval(processPassedEvents, 60000); // Check every minute
+    processPassedEvents();
+    return () => clearInterval(interval);
+  }, [events]);
 
   const totals = useMemo(() => {
     return transactions.reduce(
@@ -349,6 +831,11 @@ export default function Dashboard() {
     return chartData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
   }, [chartData]);
 
+  const handleTabClick = (tab: string) => {
+    navigate(tabToPath[tab] || '/dashboard');
+    setIsSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-bg-dark flex text-stone-100">
       {notification && (
@@ -370,11 +857,13 @@ export default function Dashboard() {
           </div>
 
           <nav className="space-y-1">
-            <NavItem icon={<LayoutDashboard className="w-5 h-5" />} label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => setActiveTab('Dashboard')} />
-            <NavItem icon={<PieChart className="w-5 h-5" />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} />
-            <NavItem icon={<TrendingUp className="w-5 h-5" />} label="Investments" active={activeTab === 'Investments'} onClick={() => setActiveTab('Investments')} />
-            <NavItem icon={<Target className="w-5 h-5" />} label="Budgets & Goals" active={activeTab === 'Budgets'} onClick={() => setActiveTab('Budgets')} />
-            <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} />
+            <NavItem icon={<LayoutDashboard className="w-5 h-5" />} label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => handleTabClick('Dashboard')} />
+            <NavItem icon={<PieChart className="w-5 h-5" />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => handleTabClick('Analytics')} />
+            <NavItem icon={<Briefcase className="w-5 h-5" />} label="Investments" active={activeTab === 'Investments'} onClick={() => handleTabClick('Investments')} />
+            <NavItem icon={<TrendingUp className="w-5 h-5" />} label="Trading" active={activeTab === 'Trading'} onClick={() => handleTabClick('Trading')} />
+            <NavItem icon={<CalendarIcon className="w-5 h-5" />} label="Calendar" active={activeTab === 'Calendar'} onClick={() => handleTabClick('Calendar')} />
+            <NavItem icon={<Target className="w-5 h-5" />} label="Budgets & Goals" active={activeTab === 'Budgets'} onClick={() => handleTabClick('Budgets')} />
+            <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" active={activeTab === 'Settings'} onClick={() => handleTabClick('Settings')} />
           </nav>
         </div>
 
@@ -391,7 +880,7 @@ export default function Dashboard() {
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                Habari, {auth.user?.name || auth.user?.email.split('@')[0] || 'User'}!
+                Habari, {auth.user?.username || 'User'}!
                 {isSyncing && <RefreshCcw className="w-4 h-4 text-primary animate-spin" />}
             </h2>
             <div className="flex items-center gap-2 mt-1">
@@ -432,158 +921,377 @@ export default function Dashboard() {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
             </div>
 
+            {/* Time Range Filter */}
+            <div className="relative group hidden md:block">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary z-10" />
+                <select 
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="pl-10 pr-10 py-2.5 bg-card-dark border border-white/10 rounded-xl text-sm font-bold text-white outline-none focus:ring-2 focus:ring-primary/30 appearance-none transition-all cursor-pointer shadow-xl min-w-[140px]"
+                >
+                    <option value="All Time" className="bg-card-dark">All Time</option>
+                    <option value="This Month" className="bg-card-dark">This Month</option>
+                    <option value="Last Month" className="bg-card-dark">Last Month</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
+            </div>
+
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2.5 bg-card-dark rounded-xl border border-border-dark shadow-lg">
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </header>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Balance"
-            amount={balance}
-            icon={<Wallet className="w-6 h-6 text-primary" />}
-            currency={currentCurrency.symbol}
-          />
-          <StatCard
-            title="Total Income"
-            amount={totals.income}
-            icon={<ArrowUpCircle className="w-6 h-6 text-emerald-500" />}
-            currency={currentCurrency.symbol}
-          />
-          <StatCard
-            title="Total Expenses"
-            amount={totals.expenses}
-            icon={<ArrowDownCircle className="w-6 h-6 text-red-500" />}
-            currency={currentCurrency.symbol}
-          />
-          <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Top Spending</span>
-              <div className="p-2 bg-amber-500/10 rounded-lg">
-                <PieChart className="w-5 h-5 text-amber-500" />
-              </div>
-            </div>
-            <div className="text-xl font-bold text-white truncate">
-              {topCategory.category}
-            </div>
-            <div className="text-xs text-stone-500 mt-1 font-bold">
-              {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Form and List */}
-          <div className="lg:col-span-1 space-y-8">
-            <TransactionForm onAdd={handleAddTransaction} currency={currentCurrency.symbol} />
-            <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currentCurrency.symbol} />
-          </div>
+          {activeTab === 'Dashboard' && (
+            <>
+              {/* Mini Stats for Dashboard */}
+              <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <MiniStatCard label="Balance" amount={balance} currency={currentCurrency.symbol} color="text-primary" />
+                <MiniStatCard label="Income" amount={totals.income} currency={currentCurrency.symbol} color="text-emerald-500" />
+                <MiniStatCard label="Expenses" amount={totals.expenses} currency={currentCurrency.symbol} color="text-red-500" />
+                <MiniStatCard label="Top Category" value={topCategory.category} color="text-amber-500" />
+              </div>
 
-          {/* Right Column: Analytics and AI */}
-          <div className="lg:col-span-2 space-y-8">
-            {activeTab === 'Dashboard' && (
-              <>
-                <section className="space-y-4">
-                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
-                    <PieChart className="w-5 h-5 text-primary" />
-                    Spending Analytics
-                  </h2>
-                  <PieChart2D 
-                    data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} 
-                    currency={currentCurrency.code}
-                  />
-                </section>
-
+              {/* Dashboard: Form and Activity */}
+              <div className="lg:col-span-1 space-y-8">
+                <TransactionForm onAdd={handleAddTransaction} currency={currentCurrency.symbol} />
+                
+                {/* Simplified Today's Date & Event */}
+                <div 
+                  onClick={() => handleTabClick('Calendar')}
+                  className="glass p-6 rounded-3xl border border-white/5 bg-white/[0.01] cursor-pointer hover:bg-white/[0.03] transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-primary/20 rounded-2xl text-primary group-hover:scale-110 transition-transform">
+                      <CalendarIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-0.5">Today's Highlight</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                    {events.filter(e => {
+                      const eDate = new Date(e.date);
+                      const today = new Date();
+                      return eDate.getDate() === today.getDate() && 
+                             eDate.getMonth() === today.getMonth() && 
+                             eDate.getFullYear() === today.getFullYear();
+                    }).length > 0 ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          <span className="text-sm font-bold text-stone-200">
+                            {events.find(e => {
+                              const eDate = new Date(e.date);
+                              const today = new Date();
+                              return eDate.getDate() === today.getDate() && 
+                                     eDate.getMonth() === today.getMonth() && 
+                                     eDate.getFullYear() === today.getFullYear();
+                            })?.title}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-stone-600 -rotate-90" />
+                      </div>
+                    ) : (
+                      <div className="text-sm text-stone-500 italic flex items-center justify-between">
+                        <span>No events scheduled today</span>
+                        <ChevronDown className="w-4 h-4 text-stone-600 -rotate-90" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-2 space-y-8">
+                <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currentCurrency.symbol} />
                 <AIInsights
                   insights={insights}
                   loading={loadingInsights}
                   onRefresh={handleRefreshInsights}
                 />
-              </>
-            )}
+              </div>
+            </>
+          )}
 
-            {activeTab === 'Analytics' && (
-              <div className="space-y-8">
-                <section className="space-y-4">
-                  <h2 className="text-xl font-bold px-2 text-white">Detailed Category Breakdown</h2>
+          {activeTab === 'Analytics' && (
+            <div className="lg:col-span-3 space-y-8">
+              {/* Full Stats Grid in Analytics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                  title="Total Balance"
+                  amount={balance}
+                  icon={<Wallet className="w-6 h-6 text-primary" />}
+                  currency={currentCurrency.symbol}
+                />
+                <StatCard
+                  title="Total Income"
+                  amount={totals.income}
+                  icon={<ArrowUpCircle className="w-6 h-6 text-emerald-500" />}
+                  currency={currentCurrency.symbol}
+                />
+                <StatCard
+                  title="Total Expenses"
+                  amount={totals.expenses}
+                  icon={<ArrowDownCircle className="w-6 h-6 text-red-500" />}
+                  currency={currentCurrency.symbol}
+                />
+                <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Top Spending</span>
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <PieChart className="w-5 h-5 text-amber-500" />
+                    </div>
+                  </div>
+                  <div className="text-xl font-bold text-white truncate">
+                    {topCategory.category}
+                  </div>
+                  <div className="text-xs text-stone-500 mt-1 font-bold">
+                    {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    3D Volume Analysis
+                  </h2>
+                  {!isMobileScreen ? (
+                    <Spending3D data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} />
+                  ) : (
+                    <div className="h-[200px] w-full rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-stone-500 text-sm italic">
+                      3D Visualization disabled on mobile
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
+                    <PieChart className="w-5 h-5 text-primary" />
+                    Categorized Spending
+                  </h2>
                   <PieChart2D 
                     data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} 
                     currency={currentCurrency.code}
                   />
-                </section>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="glass p-8 rounded-3xl border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-widest text-sm">Monthly Overview</h3>
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Total Income</span>
-                        <span className="text-emerald-500 font-bold text-lg font-mono">
-                          {currentCurrency.symbol}{totals.income.toLocaleString()}
-                        </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Efficiency & Overview */}
+                <div className="md:col-span-1 glass p-8 rounded-3xl flex flex-col items-center justify-center text-center border border-white/5 bg-white/[0.01]">
+                  <div className="text-sm font-bold text-stone-500 uppercase tracking-[0.2em] mb-6">Savings Efficiency</div>
+                  <div className="relative w-40 h-40 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="80" cy="80" r="75" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/5" />
+                          <circle cx="80" cy="80" r="75" stroke="currentColor" strokeWidth="10" fill="transparent" 
+                              strokeDasharray={471}
+                              strokeDashoffset={471 - (471 * (totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.expenses) / totals.income) * 100))) : 0)) / 100}
+                              className="text-primary transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(16,185,129,0.3)]" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center">
+                          <div className="text-4xl font-bold text-white font-mono">
+                              {totals.income > 0 ? Math.max(0, Math.round(((totals.income - totals.expenses) / totals.income) * 100)) : 0}%
+                          </div>
+                          <div className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-1">Rate</div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Total Expenses</span>
-                        <span className="text-red-500 font-bold text-lg font-mono">
-                          {currentCurrency.symbol}{totals.expenses.toLocaleString()}
-                        </span>
+                  </div>
+                  <p className="mt-8 text-stone-400 text-xs leading-relaxed max-w-[200px]">
+                    Percent of income remaining after all categorized expenses.
+                  </p>
+                </div>
+
+                <div className="md:col-span-1 glass p-8 rounded-3xl border border-white/5 bg-white/[0.01]">
+                  <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Monthly Summary</h3>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-stone-400 text-sm">Income</span>
+                      <span className="text-emerald-500 font-bold font-mono">
+                        +{currentCurrency.symbol}{totals.income.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-stone-400 text-sm">Expenses</span>
+                      <span className="text-red-500 font-bold font-mono">
+                        -{currentCurrency.symbol}{totals.expenses.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-px bg-white/5 my-2"></div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-bold text-sm">Net Flow</span>
+                      <span className="text-primary font-bold text-lg font-mono">
+                        {currentCurrency.symbol}{(totals.income - totals.expenses).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-1 glass p-8 rounded-3xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Largest Expense</h3>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                        <TrendingUp className="w-6 h-6" />
                       </div>
-                      <div className="h-px bg-white/5 my-2"></div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-stone-400 font-medium text-sm">Net Savings</span>
-                        <span className="text-primary font-bold text-xl font-mono">
-                          {currentCurrency.symbol}{(totals.income - totals.expenses).toLocaleString()}
-                        </span>
+                      <div>
+                        <div className="text-lg font-bold text-white truncate max-w-[120px]">
+                          {topCategory.category}
+                        </div>
+                        <div className="text-xs text-stone-500 font-bold font-mono uppercase">
+                          {currentCurrency.symbol}{topCategory.amount.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="glass p-8 rounded-3xl flex flex-col items-center justify-center text-center border border-white/5">
-                    <div className="text-sm font-bold text-stone-500 uppercase tracking-[0.2em] mb-6">Financial Efficiency</div>
-                    <div className="relative w-32 h-32 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                            <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                                strokeDasharray={377}
-                                strokeDashoffset={377 - (377 * (totals.income > 0 ? Math.max(0, Math.min(100, Math.round(((totals.income - totals.expenses) / totals.income) * 100))) : 0)) / 100}
-                                className="text-primary transition-all duration-1000 ease-out" />
-                        </svg>
-                        <div className="absolute text-3xl font-bold text-white font-mono">
-                            {totals.income > 0 ? Math.max(0, Math.round(((totals.income - totals.expenses) / totals.income) * 100)) : 0}%
-                        </div>
-                    </div>
-                    <div className="mt-6 text-stone-500 text-xs font-bold uppercase tracking-widest">Savings Rate</div>
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                    <p className="text-[10px] text-stone-500 leading-normal italic">
+                      "Identifying your largest spending category is the first step toward optimization."
+                    </p>
                   </div>
                 </div>
               </div>
-            )}
 
-            {activeTab === 'Investments' && (
-              <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
-            )}
-
-            {activeTab === 'Budgets' && (
-              <div className="space-y-8">
-                <BudgetManager
-                  budgets={budgets}
-                  spendingByCategory={spendingByCategory}
-                  onSave={handleSaveBudget}
-                  currency={currentCurrency.symbol}
-                />
-                <SavingsGoals
-                  goals={goals}
-                  onAdd={handleAddGoal}
-                  onUpdate={handleUpdateGoal}
-                  onDelete={handleDeleteGoal}
-                  currency={currentCurrency.symbol}
-                />
+              {/* Detailed Breakdown List */}
+              <div className="glass p-8 rounded-3xl border border-white/5 bg-white/[0.01]">
+                <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">Category Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {chartData.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <span className="text-stone-300 text-sm font-medium">{item.category}</span>
+                      </div>
+                      <span className="text-white font-mono font-bold text-sm">
+                        {currentCurrency.symbol}{item.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                  {chartData.length === 0 && <p className="col-span-full text-center text-stone-600 italic py-4">No spending data available for this period.</p>}
+                </div>
               </div>
-            )}
 
-            {activeTab === 'Settings' && (
-              <div className="space-y-8">
+              {/* Trading Analytics */}
+              <TradingAnalytics trades={convertedTrades} capital={convertedTradingCapital.invested_amount} currency={currentCurrency.symbol} />
+            </div>
+          )}
+
+          {activeTab === 'Investments' && (
+            <div className="lg:col-span-3 space-y-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <InvestingForm onAdd={handleAddManualInvestment} currency={currentCurrency.code} />
+                
+                <div className="space-y-8">
+                  <div className="glass p-8 rounded-3xl border border-white/5 bg-primary/5 text-center">
+                    <h3 className="text-xl font-bold text-white mb-2">Trading Capital</h3>
+                    <p className="text-sm text-stone-400 mb-6">Allocate funds specifically for use in the Trading Simulator.</p>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="text-3xl font-bold text-white font-mono">
+                        <span className="text-sm text-stone-500 mr-1">{currentCurrency.symbol}</span>
+                        {convertedTradingCapital.invested_amount.toLocaleString()}
+                      </div>
+                      <form onSubmit={(e) => { e.preventDefault(); const amt = parseFloat((e.currentTarget.elements[0] as HTMLInputElement).value); if(amt >= 0) handleAllocateCapital(amt); }} className="flex items-center gap-3 w-full max-w-sm">
+                        <input type="number" step="0.01" min="0" required className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/30" placeholder={`Amount in ${currentCurrency.code}...`} />
+                        <button type="submit" className="px-6 py-3 bg-primary hover:bg-secondary text-white font-bold rounded-xl transition-all shadow-lg active:scale-95">Update</button>
+                      </form>
+                    </div>
+                  </div>
+
+                  <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
+                </div>
+              </div>
+
+              {/* Portfolio Summary */}
+              <div className="glass p-8 rounded-3xl border border-white/5">
+                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  Your Asset Portfolio
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {convertedManualInvestments.map((inv) => (
+                    <div key={inv.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{inv.asset_type}</div>
+                          <h4 className="text-white font-bold">{inv.asset_name}</h4>
+                        </div>
+                        <button onClick={() => handleDeleteManualInvestment(inv.id)} className="p-1.5 text-stone-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <div className="text-[10px] text-stone-500 uppercase font-bold">Qty</div>
+                          <div className="text-sm font-mono text-white">{inv.quantity}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-stone-500 uppercase font-bold">Cost</div>
+                          <div className="text-sm font-mono text-emerald-500">{currentCurrency.symbol}{inv.total_cost.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {manualInvestments.length === 0 && <div className="col-span-full text-center py-10 text-stone-600 italic">No assets in your portfolio yet.</div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Trading' && (
+            <div className="lg:col-span-3">
+              <TradingJournal
+                capital={convertedTradingCapital.invested_amount}
+                trades={convertedTrades}
+                livePrices={liveAssetPrices}
+                onPlaceTrade={handlePlaceTrade}
+                onCloseTrade={handleCloseTrade}
+                currency={currentCurrency.symbol}
+                showNotification={showNotification}
+              />
+            </div>
+          )}
+
+          {activeTab === 'Calendar' && (
+            <div className="lg:col-span-3 h-[800px]">
+              <Calendar 
+                todos={todos}
+                onAddTodo={handleAddTodo}
+                onToggleTodo={handleToggleTodo}
+                onDeleteTodo={handleDeleteTodo}
+                events={events}
+                onAddEvent={handleAddEvent}
+                onDeleteEvent={handleDeleteEvent}
+                memories={memories}
+                onAddMemory={handleAddMemory}
+                onDeleteMemory={handleDeleteMemory}
+                reminders={reminders}
+                onAddReminder={handleAddReminder}
+                onDeleteReminder={handleDeleteReminder}
+              />
+            </div>
+          )}
+
+          {activeTab === 'Budgets' && (
+            <div className="lg:col-span-3 space-y-8">
+              <BudgetManager
+                budgets={budgets}
+                spendingByCategory={spendingByCategory}
+                onSave={handleSaveBudget}
+                currency={currentCurrency.symbol}
+              />
+              <SavingsGoals
+                goals={goals}
+                onAdd={handleAddGoal}
+                onUpdate={handleUpdateGoal}
+                onDelete={handleDeleteGoal}
+                currency={currentCurrency.symbol}
+              />
+            </div>
+          )}
+
+          {activeTab === 'Settings' && (
+            <div className="lg:col-span-3">
                 <div className="glass p-8 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-4 mb-8">
                     <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-primary">
@@ -596,6 +1304,52 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="space-y-8">
+                    <section>
+                      <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Account Key Management</h3>
+                      <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.01] space-y-4">
+                        <div className="relative">
+                          <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+                          <input 
+                            type="text" 
+                            value={newUsername}
+                            onChange={(e) => setNewUsername(e.target.value)}
+                            placeholder="Enter username/key..."
+                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-white text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button 
+                            onClick={() => handleAccountAccess('register')}
+                            className="py-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs font-bold uppercase hover:bg-primary/20 transition-all"
+                          >
+                            Register Key
+                          </button>
+                          <button 
+                            onClick={() => handleAccountAccess('login')}
+                            className="py-3 bg-white/5 border border-white/10 text-stone-300 rounded-xl text-xs font-bold uppercase hover:bg-white/10 transition-all"
+                          >
+                            Regain Data
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button 
+                            onClick={handleDownloadData}
+                            className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-xs font-bold uppercase hover:bg-emerald-500/20 transition-all"
+                          >
+                            <Download className="w-4 h-4" />
+                            JSON Export
+                          </button>
+                          <button 
+                            onClick={handleDownloadCSV}
+                            className="flex items-center justify-center gap-2 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-xl text-xs font-bold uppercase hover:bg-blue-500/20 transition-all"
+                          >
+                            <FileText className="w-4 h-4" />
+                            CSV Export
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+
                     <section>
                       <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Cloud Sync & Security</h3>
                       <div className="space-y-3">
@@ -631,37 +1385,11 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </section>
-
-                    <section>
-                      <h3 className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em] mb-4">Global Preferences</h3>
-                      <div className="glass p-6 rounded-2xl border border-white/5 bg-white/[0.01]">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-white font-bold text-sm">Base Currency</div>
-                                <div className="text-stone-500 text-xs mt-1">Updates real-time via Frankfurter API</div>
-                            </div>
-                            <div className="relative">
-                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary z-10" />
-                                <select 
-                                    value={currencyCode}
-                                    onChange={(e) => setCurrencyCode(e.target.value)}
-                                    className="pl-10 pr-10 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-white outline-none focus:ring-2 focus:ring-primary/30 appearance-none transition-all cursor-pointer min-w-[160px]"
-                                >
-                                    {CURRENCIES.map(c => (
-                                        <option key={c.code} value={c.code} className="bg-card-dark">{c.name} ({c.symbol})</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none" />
-                            </div>
-                        </div>
-                      </div>
-                    </section>
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </div>
       </main>
     </div>
   );
@@ -686,6 +1414,18 @@ function StatCard({ title, amount, icon, currency }: { title: string; amount: nu
       <div className="text-2xl font-bold font-mono text-white flex items-baseline gap-1">
         <span className="text-xs text-stone-500 font-bold">{currency}</span>
         {amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      </div>
+    </div>
+  );
+}
+
+function MiniStatCard({ label, amount, currency, value, color }: { label: string; amount?: number; currency?: string; value?: string; color: string }) {
+  return (
+    <div className="glass p-3 rounded-xl border border-white/5 bg-white/[0.01]">
+      <div className="text-[10px] font-bold text-stone-500 uppercase tracking-tight mb-1">{label}</div>
+      <div className={`text-sm font-bold truncate ${color}`}>
+        {currency && <span className="text-[10px] mr-0.5 opacity-70">{currency}</span>}
+        {amount !== undefined ? amount.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value}
       </div>
     </div>
   );
