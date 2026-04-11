@@ -70,6 +70,86 @@ async function initDB() {
         deadline TEXT
       );
     `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS todos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        task TEXT NOT NULL,
+        is_completed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS trading_capital (
+        user_id INTEGER PRIMARY KEY,
+        invested_amount REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'USD'
+      );
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS trades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        asset TEXT NOT NULL,
+        direction TEXT CHECK(direction IN ('Long', 'Short')) NOT NULL,
+        entry_price REAL NOT NULL,
+        take_profit REAL NOT NULL,
+        stop_loss REAL NOT NULL,
+        margin_invested REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        status TEXT CHECK(status IN ('open', 'closed')) DEFAULT 'open',
+        pnl REAL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        closed_at TEXT,
+        leverage REAL DEFAULT 1,
+        image_url TEXT,
+        win_loss TEXT,
+        exit_price REAL,
+        breakeven_price REAL,
+        q_why_taken TEXT,
+        q_followed_setup TEXT,
+        feeling_before TEXT,
+        feeling_during TEXT,
+        feeling_after TEXT,
+        q_distracted TEXT,
+        q_take_again TEXT,
+        time TEXT
+      );
+    `);
+
+    // Migration helper for existing DBs
+    const columns = [
+        'leverage REAL DEFAULT 1', 'image_url TEXT', 'win_loss TEXT', 'exit_price REAL', 
+        'breakeven_price REAL', 'q_why_taken TEXT', 'q_followed_setup TEXT', 
+        'feeling_before TEXT', 'feeling_during TEXT', 'feeling_after TEXT', 
+        'q_distracted TEXT', 'q_take_again TEXT', 'time TEXT'
+    ];
+    for (const col of columns) {
+        try {
+            await db.execute(`ALTER TABLE trades ADD COLUMN ${col}`);
+        } catch (e) {
+            // Column likely already exists
+        }
+    }
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS manual_investments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        asset_name TEXT NOT NULL,
+        asset_type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        buy_price REAL NOT NULL,
+        total_cost REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        date TEXT NOT NULL,
+        platform TEXT,
+        notes TEXT
+      );
+    `);
     console.log("Database initialized successfully.");
   } catch (err) {
     console.error("Database initialization failed:", err);
@@ -91,7 +171,7 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://generativelanguage.googleapis.com https://*.googleapis.com; img-src 'self' data: blob: *; connect-src 'self' https://generativelanguage.googleapis.com https://api.frankfurter.app https://*.googleapis.com ws: wss:; style-src 'self' 'unsafe-inline' *; font-src 'self' data: *; upgrade-insecure-requests;"
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://generativelanguage.googleapis.com https://*.googleapis.com; img-src 'self' data: blob: *; connect-src 'self' https://generativelanguage.googleapis.com https://api.frankfurter.app https://api.frankfurter.dev https://api.binance.com https://*.googleapis.com ws: wss:; style-src 'self' 'unsafe-inline' *; font-src 'self' data: *; upgrade-insecure-requests;"
     );
     next();
   });
@@ -245,6 +325,120 @@ async function startServer() {
     await db.execute({
       sql: "DELETE FROM goals WHERE id = ? AND user_id = ?",
       args: [req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  // Todos API
+  app.get("/api/todos", authenticate, async (req, res) => {
+    const result = await db.execute({
+      sql: "SELECT * FROM todos WHERE user_id = ? ORDER BY created_at DESC",
+      args: [req.session.userId]
+    });
+    res.json(result.rows);
+  });
+
+  app.post("/api/todos", authenticate, async (req, res) => {
+    const { task, created_at } = req.body;
+    const result = await db.execute({
+      sql: "INSERT INTO todos (user_id, task, created_at) VALUES (?, ?, ?)",
+      args: [req.session.userId, task, created_at || new Date().toISOString()]
+    });
+    res.json({ id: Number(result.lastInsertRowid) });
+  });
+
+  app.patch("/api/todos/:id", authenticate, async (req, res) => {
+    const { is_completed } = req.body;
+    await db.execute({
+      sql: "UPDATE todos SET is_completed = ? WHERE id = ? AND user_id = ?",
+      args: [is_completed ? 1 : 0, req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  app.delete("/api/todos/:id", authenticate, async (req, res) => {
+    await db.execute({
+      sql: "DELETE FROM todos WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  // Manual Investments API
+  app.get("/api/manual-investments", authenticate, async (req, res) => {
+    const result = await db.execute({
+      sql: "SELECT * FROM manual_investments WHERE user_id = ? ORDER BY date DESC",
+      args: [req.session.userId]
+    });
+    res.json(result.rows);
+  });
+
+  app.post("/api/manual-investments", authenticate, async (req, res) => {
+    const { asset_name, asset_type, quantity, buy_price, total_cost, currency, date, platform, notes } = req.body;
+    const result = await db.execute({
+      sql: "INSERT INTO manual_investments (user_id, asset_name, asset_type, quantity, buy_price, total_cost, currency, date, platform, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [req.session.userId, asset_name, asset_type, quantity, buy_price, total_cost, currency || 'USD', date || new Date().toISOString(), platform, notes]
+    });
+    res.json({ id: Number(result.lastInsertRowid) });
+  });
+
+  app.delete("/api/manual-investments/:id", authenticate, async (req, res) => {
+    await db.execute({
+      sql: "DELETE FROM manual_investments WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  // Trades API
+  app.get("/api/trades", authenticate, async (req, res) => {
+    const result = await db.execute({
+      sql: "SELECT * FROM trades WHERE user_id = ? ORDER BY created_at DESC",
+      args: [req.session.userId]
+    });
+    res.json(result.rows);
+  });
+
+  app.post("/api/trades", authenticate, async (req, res) => {
+    const { asset, direction, entry_price, take_profit, stop_loss, margin_invested, currency, status, pnl, created_at, closed_at, leverage, image_url, win_loss, exit_price, breakeven_price, q_why_taken, q_followed_setup, feeling_before, feeling_during, feeling_after, q_distracted, q_take_again, time } = req.body;
+    const result = await db.execute({
+      sql: "INSERT INTO trades (user_id, asset, direction, entry_price, take_profit, stop_loss, margin_invested, currency, status, pnl, created_at, closed_at, leverage, image_url, win_loss, exit_price, breakeven_price, q_why_taken, q_followed_setup, feeling_before, feeling_during, feeling_after, q_distracted, q_take_again, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [req.session.userId, asset, direction, entry_price, take_profit, stop_loss, margin_invested, currency || 'USD', status || 'open', pnl || 0, created_at, closed_at, leverage || 1, image_url, win_loss, exit_price, breakeven_price, q_why_taken, q_followed_setup, feeling_before, feeling_during, feeling_after, q_distracted, q_take_again, time]
+    });
+    res.json({ id: Number(result.lastInsertRowid) });
+  });
+
+  app.patch("/api/trades/:id", authenticate, async (req, res) => {
+    const { status, pnl, closed_at } = req.body;
+    await db.execute({
+      sql: "UPDATE trades SET status = ?, pnl = ?, closed_at = ? WHERE id = ? AND user_id = ?",
+      args: [status, pnl, closed_at, req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  app.delete("/api/trades/:id", authenticate, async (req, res) => {
+    await db.execute({
+      sql: "DELETE FROM trades WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.session.userId]
+    });
+    res.json({ success: true });
+  });
+
+  // Trading Capital API
+  app.get("/api/trading-capital", authenticate, async (req, res) => {
+    const result = await db.execute({
+      sql: "SELECT * FROM trading_capital WHERE user_id = ?",
+      args: [req.session.userId]
+    });
+    res.json(result.rows[0] || { invested_amount: 0, currency: 'USD' });
+  });
+
+  app.post("/api/trading-capital", authenticate, async (req, res) => {
+    const { invested_amount, currency } = req.body;
+    await db.execute({
+      sql: "INSERT OR REPLACE INTO trading_capital (user_id, invested_amount, currency) VALUES (?, ?, ?)",
+      args: [req.session.userId, invested_amount, currency || 'USD']
     });
     res.json({ success: true });
   });

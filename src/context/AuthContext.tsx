@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import { Preferences } from '@capacitor/preferences';
 
 interface User {
   id: string;
@@ -23,13 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`);
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
+        const { value } = await Preferences.get({ key: 'manager_user' });
+        if (value) {
+          setUser(JSON.parse(value));
         }
       } catch (err) {
-        // Not logged in is fine
+        console.error("Failed to load user from preferences", err);
       } finally {
         setLoading(false);
       }
@@ -39,38 +37,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const access = async (username: string, action: 'login' | 'register'): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/access`, {
+      const response = await fetch('/api/auth/access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, action }),
+        body: JSON.stringify({ username, action })
       });
-      
-      const contentType = res.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await res.json();
-      } else {
-        const text = await res.text();
-        return { success: false, error: `Server error (${res.status}): ${text.slice(0, 100)}` };
-      }
 
-      if (res.ok) {
-        setUser({ id: data.id, username: data.username });
+      const result = await response.json();
+
+      if (response.ok) {
+        const newUser = { id: result.id.toString(), username: result.username };
+        await Preferences.set({ key: 'manager_user', value: JSON.stringify(newUser) });
+        setUser(newUser);
         return { success: true };
+      } else {
+        return { success: false, error: result.error || "Access failed" };
       }
-      return { success: false, error: data.error || 'Access failed' };
     } catch (err) {
       console.error("Access failed:", err);
-      return { success: false, error: "Connection error. Make sure the server is running." };
+      return { success: false, error: "Server connection error." };
     }
   };
 
-  const login = async (email: string, password: string) => { return false; }; // Legacy stub
-  const register = async (email: string, password: string, name?: string) => { return false; }; // Legacy stub
-
   const logout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await Preferences.remove({ key: 'manager_user' });
       setUser(null);
     } catch (err) {
       console.error("Logout failed:", err);

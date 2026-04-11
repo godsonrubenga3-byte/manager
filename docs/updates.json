@@ -1,0 +1,69 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "description": "Updated Content-Security-Policy in index.html to include api.binance.com, api.frankfurter.dev, and cdn.jsdelivr.net to fix chart and market data loading issues.",
+      "files": ["index.html"]
+    },
+    {
+      "step": 2,
+      "description": "Disabled 3D Volume Analysis on mobile devices by adding a responsive check in Dashboard.tsx and conditional rendering.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 3,
+      "description": "Fixed Recharts width/height error in PieChart2D.tsx by providing a fallback height and improving ResponsiveContainer configuration.",
+      "files": ["src/components/PieChart2D.tsx"]
+    },
+    {
+      "step": 4,
+      "description": "Added 'Pending' badge to AI Financial Advisor in AIInsights.tsx as requested.",
+      "files": ["src/components/AIInsights.tsx"]
+    },
+    {
+      "step": 5,
+      "description": "Created a new comprehensive Calendar component that handles Events, Memories (with Spotify integration), Reminders, and Tasks.",
+      "files": ["src/components/Calendar.tsx"]
+    },
+    {
+      "step": 6,
+      "description": "Integrated Calendar component into Dashboard.tsx, added state management for events, memories, and reminders, and replaced TaskManager with the new integrated Calendar.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 7,
+      "description": "Implemented automated logic to move passed events to memories and periodically check for updates.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 8,
+      "description": "Improved Push Notifications logic in notifications.ts for better mobile compatibility by adding channelId and permission re-checks.",
+      "files": ["src/utils/notifications.ts"]
+    },
+    {
+      "step": 9,
+      "description": "Robustified data export functions in Dashboard.tsx for better mobile support by ensuring proper DOM attachment of download links.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 10,
+      "description": "Implemented algorithmic fallback for AI Insights in geminiService.ts to provide financial analysis even when the AI service is pending or unavailable.",
+      "files": ["src/services/geminiService.ts"]
+    },
+    {
+      "step": 11,
+      "description": "Promoted Calendar to a top-level independent tab in the sidebar, replacing the Tasks tab, and kept a simplified Today view on the Dashboard.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 12,
+      "description": "Updated Calendar component inputs: Task list input as textarea, Event input with start/end times and Song(s) of the Day. Dashboard Today view now only shows date and event title with redirect to Calendar.",
+      "files": ["src/components/Calendar.tsx", "src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 13,
+      "description": "Linked Events and Memories: Automatic conversion now preserves description and songs_of_the_day. Memory UI updated to display these fields.",
+      "files": ["src/components/Calendar.tsx", "src/pages/Dashboard.tsx"]
+    }
+  ]
+}

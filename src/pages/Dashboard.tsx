@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw, Key, Download, FileText } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, PieChart, LayoutDashboard, Settings, LogOut, Menu, X, Search, Filter, TrendingUp, Target, Trash2, ChevronDown, Globe, Cloud, CheckCircle, Clock, RefreshCcw, Key, Download, FileText, Briefcase, Activity, CheckSquare, Database, Calendar as CalendarIcon, CloudUpload } from 'lucide-react';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import PieChart2D from '../components/PieChart2D';
@@ -10,9 +11,17 @@ import AIInsights from '../components/AIInsights';
 import BudgetManager from '../components/BudgetManager';
 import SavingsGoals from '../components/SavingsGoals';
 import Notification, { NotificationType } from '../components/Notification';
+import Calendar from '../components/Calendar';
+import TradingJournal from '../components/TradingJournal';
+import TradingSimulator from '../components/TradingSimulator';
+import TradingAnalytics from '../components/TradingAnalytics';
+import InvestingForm from '../components/InvestingForm';
 import { getAIInsights, Transaction as GeminiTransaction } from '../services/geminiService';
 import { Preferences } from '@capacitor/preferences';
 import { convertCurrency, fetchLiveRates, STATIC_EXCHANGE_RATES } from '../utils/currency';
+import { fetchMarketData } from '../services/marketDataService';
+import { requestNotificationPermissions } from '../utils/notifications';
+import { isSameDay } from 'date-fns';
 
 // Extend Transaction to include currency from DB
 interface Transaction extends GeminiTransaction {
@@ -75,13 +84,82 @@ export default function Dashboard() {
     await Preferences.remove({ key: 'last_synced' });
   };
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('Dashboard');
+  
+  // Map path to tab name
+  const pathToTab: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/analytics': 'Analytics',
+    '/investments': 'Investments',
+    '/tradingjournal': 'Trading',
+    '/calendar': 'Calendar',
+    '/budgets': 'Budgets',
+    '/settings': 'Settings'
+  };
+
+  // Reverse map for navigation
+  const tabToPath: Record<string, string> = {
+    'Dashboard': '/dashboard',
+    'Analytics': '/analytics',
+    'Investments': '/investments',
+    'Trading': '/tradingjournal',
+    'Calendar': '/calendar',
+    'Budgets': '/budgets',
+    'Settings': '/settings'
+  };
+
+  const activeTab = pathToTab[location.pathname] || 'Dashboard';
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [dateFilter, setDateFilter] = useState('All Time');
   const [newUsername, setNewUsername] = useState(auth.user?.username || '');
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // New Features State
+  const [todos, setTodos] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [memories, setMemories] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [trades, setTrades] = useState<any[]>([]);
+  const [manualInvestments, setManualInvestments] = useState<any[]>([]);
+  const [tradingCapital, setTradingCapital] = useState({ invested_amount: 0, currency: 'USD' });
+  const [liveAssetPrices, setLiveAssetPrices] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+
+  // Poll real-time asset prices for active trades & UI
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrices = async () => {
+      const symbols = ['BTCUSDT', 'BBTCUSD', 'GBPJPY', 'XAUUSD', 'UMJATZS'];
+      const newPrices: Record<string, number | null> = {};
+      for (const symbol of symbols) {
+        newPrices[symbol] = await fetchMarketData(symbol);
+      }
+      if (isMounted) setLiveAssetPrices(prev => ({ ...prev, ...newPrices }));
+    };
+
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 10000); // Every 10 seconds
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (auth.user?.username) {
@@ -137,6 +215,29 @@ export default function Dashboard() {
     }));
   }, [rawGoals, currencyCode, liveRates]);
 
+  const convertedTrades = useMemo(() => {
+    return trades.map(t => ({
+      ...t,
+      margin_invested: convertCurrency(t.margin_invested, t.currency || 'USD', currencyCode, liveRates),
+      pnl: convertCurrency(t.pnl || 0, t.currency || 'USD', currencyCode, liveRates)
+    }));
+  }, [trades, currencyCode, liveRates]);
+
+  const convertedTradingCapital = useMemo(() => {
+    return {
+      ...tradingCapital,
+      invested_amount: convertCurrency(tradingCapital.invested_amount, tradingCapital.currency || 'USD', currencyCode, liveRates)
+    };
+  }, [tradingCapital, currencyCode, liveRates]);
+
+  const convertedManualInvestments = useMemo(() => {
+    return manualInvestments.map(inv => ({
+      ...inv,
+      buy_price: convertCurrency(inv.buy_price, inv.currency || 'USD', currencyCode, liveRates),
+      total_cost: convertCurrency(inv.total_cost, inv.currency || 'USD', currencyCode, liveRates)
+    }));
+  }, [manualInvestments, currencyCode, liveRates]);
+
   useEffect(() => {
     const initRates = async () => {
       const rates = await fetchLiveRates();
@@ -171,148 +272,218 @@ export default function Dashboard() {
   const handleSync = async (silent = false) => {
     if (!silent) setIsSyncing(true);
     try {
+      // 1. Push Phase: Upload local offline data to database
+      const localTrades = await getCachedData<any[]>('trades') || [];
+      const localCapital = await getCachedData<any>('trading_capital');
+
+      // Only push if there's actual data to push
+      if (localTrades.length > 0 || (localCapital && localCapital.invested_amount > 0)) {
+        await Promise.all([
+          ...localTrades.map(trade => 
+            fetch('/api/trades', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(trade)
+            }).catch(() => null)
+          ),
+          localCapital ? fetch('/api/trading-capital', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localCapital)
+          }).catch(() => null) : Promise.resolve()
+        ]);
+      }
+
+      // 2. Pull Phase: Fetch latest from server/local
       await Promise.all([
         fetchTransactions(),
         fetchBudgets(),
-        fetchGoals()
+        fetchGoals(),
+        fetchTodos(),
+        fetchEvents(),
+        fetchMemories(),
+        fetchReminders(),
+        fetchTrades(),
+        fetchTradingCapital(),
+        fetchManualInvestments()
       ]);
+
       const now = new Date().toLocaleString();
       setLastSynced(now);
       await Preferences.set({ key: 'last_synced', value: now });
-      if (!silent) showNotification('Cloud Data Synchronized Successfully!');
+      if (!silent) showNotification('Cloud Sync Complete!');
     } catch (err) {
       console.error("Sync failed:", err);
-      if (!silent) showNotification('Failed to sync with cloud. Check connection.', 'error');
+      if (!silent) showNotification('Sync encountered issues.', 'error');
     } finally {
       if (!silent) setTimeout(() => setIsSyncing(false), 800);
     }
   };
 
   const fetchTransactions = async () => {
-    const cached = await getCachedData<Transaction[]>('transactions');
-    if (cached) setRawTransactions(cached);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/transactions`);
-      if (res.ok) {
-        const data = await res.json();
-        setRawTransactions(data);
-        await setCachedData('transactions', data);
-      }
-    } catch (err) {
-      console.error("Fetch transactions failed:", err);
-    }
+    const data = await getCachedData<Transaction[]>('transactions');
+    setRawTransactions(data || []);
   };
 
   const fetchInvestments = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/investments`);
-      if (res.ok) {
-        const data = await res.json();
-        setInvestments(data);
-      }
-    } catch (err) {
-      console.error("Fetch investments failed:", err);
-    }
+    // These are static for now as they were just info
+    setInvestments([
+      { name: "Index Funds (S&P 500)", expectedReturn: "8-10% p.a.", risk: "Moderate", minAmount: "Varies", description: "Global stock market tracking." },
+      { name: "High-Yield Savings", expectedReturn: "4-5% p.a.", risk: "Very Low", minAmount: "None", description: "Safe emergency funds." }
+    ] as any);
   };
 
   const fetchBudgets = async () => {
-    const cached = await getCachedData<any[]>('budgets');
-    if (cached) setRawBudgets(cached);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/budgets`);
-      if (res.ok) {
-        const data = await res.json();
-        setRawBudgets(data);
-        await setCachedData('budgets', data);
-      }
-    } catch (err) {
-      console.error("Fetch budgets failed:", err);
-    }
+    const data = await getCachedData<any[]>('budgets');
+    setRawBudgets(data || []);
   };
 
   const fetchGoals = async () => {
-    const cached = await getCachedData<any[]>('goals');
-    if (cached) setRawGoals(cached);
+    const data = await getCachedData<any[]>('goals');
+    setRawGoals(data || []);
+  };
+
+  const fetchTodos = async () => {
+    const data = await getCachedData<any[]>('todos');
+    setTodos(data || []);
+  };
+
+  const fetchEvents = async () => {
+    const data = await getCachedData<any[]>('events');
+    setEvents(data || []);
+  };
+
+  const fetchMemories = async () => {
+    const data = await getCachedData<any[]>('memories');
+    setMemories(data || []);
+  };
+
+  const fetchReminders = async () => {
+    const data = await getCachedData<any[]>('reminders');
+    setReminders(data || []);
+  };
+
+  const fetchTrades = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/goals`);
+      const res = await fetch('/api/trades');
       if (res.ok) {
         const data = await res.json();
-        setRawGoals(data);
-        await setCachedData('goals', data);
+        setTrades(data);
+        await setCachedData('trades', data);
+        return;
       }
-    } catch (err) {
-      console.error("Fetch goals failed:", err);
-    }
+    } catch (e) {}
+    const data = await getCachedData<any[]>('trades');
+    setTrades(data || []);
+  };
+
+  const fetchTradingCapital = async () => {
+    try {
+      const res = await fetch('/api/trading-capital');
+      if (res.ok) {
+        const data = await res.json();
+        setTradingCapital(data);
+        await setCachedData('trading_capital', data);
+        return;
+      }
+    } catch (e) {}
+    const data = await getCachedData<any>('trading_capital');
+    setTradingCapital(data || { invested_amount: 0, currency: 'USD' });
+  };
+
+  const fetchManualInvestments = async () => {
+    const data = await getCachedData<any[]>('manual_investments');
+    setManualInvestments(data || []);
+  };
+
+  const handleAddManualInvestment = async (investment: any) => {
+    const current = await getCachedData<any[]>('manual_investments') || [];
+    const newItem = { ...investment, id: Date.now() };
+    const updated = [newItem, ...current];
+    await setCachedData('manual_investments', updated);
+    setManualInvestments(updated);
+    showNotification('Investment added to portfolio!');
+  };
+
+  const handleDeleteManualInvestment = async (id: number) => {
+    const current = await getCachedData<any[]>('manual_investments') || [];
+    const updated = current.filter(i => i.id !== id);
+    await setCachedData('manual_investments', updated);
+    setManualInvestments(updated);
+    showNotification('Investment removed.');
   };
 
   const handleAddTransaction = async (newTransaction: any) => {
-    const res = await fetch(`${API_BASE_URL}/api/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newTransaction, currency: currencyCode }),
-    });
-    if (res.ok) {
-      if (newTransaction.image) {
-        showNotification('Receipt & Transaction Uploaded Successfully!');
-      } else {
-        showNotification('Transaction Saved Successfully!');
-      }
-      fetchTransactions();
-    } else {
-      showNotification('Failed to save transaction.', 'error');
-    }
+    const current = await getCachedData<Transaction[]>('transactions') || [];
+    const newItem = { 
+      ...newTransaction, 
+      id: Date.now(), 
+      currency: currencyCode,
+      user_id: auth.user?.id || 1 
+    };
+    const updated = [newItem, ...current];
+    await setCachedData('transactions', updated);
+    setRawTransactions(updated);
+    showNotification('Transaction Saved Locally!');
   };
 
   const handleDeleteTransaction = async (id: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/transactions/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showNotification('Transaction Deleted.');
-      fetchTransactions();
-    }
+    const current = await getCachedData<Transaction[]>('transactions') || [];
+    const updated = current.filter(t => t.id !== id);
+    await setCachedData('transactions', updated);
+    setRawTransactions(updated);
+    showNotification('Transaction Deleted.');
   };
 
   const handleSaveBudget = async (category: string, limit_amount: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/budgets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, limit_amount, currency: currencyCode }),
-    });
-    if (res.ok) {
-      showNotification(`${category} Budget Updated!`);
-      fetchBudgets();
+    const current = await getCachedData<any[]>('budgets') || [];
+    const existingIndex = current.findIndex(b => b.category === category);
+    const newBudget = { category, limit_amount, currency: currencyCode, user_id: auth.user?.id || 1 };
+    
+    let updated;
+    if (existingIndex > -1) {
+      updated = [...current];
+      updated[existingIndex] = newBudget;
+    } else {
+      updated = [...current, newBudget];
     }
+    
+    await setCachedData('budgets', updated);
+    setRawBudgets(updated);
+    showNotification(`${category} Budget Updated!`);
   };
 
   const handleAddGoal = async (name: string, target_amount: number, current_amount: number, deadline?: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, target_amount, current_amount, currency: currencyCode, deadline }),
-    });
-    if (res.ok) {
-      showNotification(`Goal "${name}" Created!`);
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const newGoal = { 
+      id: Date.now(), 
+      name, 
+      target_amount, 
+      current_amount, 
+      currency: currencyCode, 
+      deadline,
+      user_id: auth.user?.id || 1 
+    };
+    const updated = [...current, newGoal];
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification(`Goal "${name}" Created!`);
   };
 
   const handleUpdateGoal = async (id: number, new_current_amount: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_amount: new_current_amount }),
-    });
-    if (res.ok) {
-      showNotification('Savings Progress Updated!');
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const updated = current.map(g => g.id === id ? { ...g, current_amount: new_current_amount } : g);
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification('Savings Progress Updated!');
   };
 
   const handleDeleteGoal = async (id: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/goals/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showNotification('Goal Removed.');
-      fetchGoals();
-    }
+    const current = await getCachedData<any[]>('goals') || [];
+    const updated = current.filter(g => g.id !== id);
+    await setCachedData('goals', updated);
+    setRawGoals(updated);
+    showNotification('Goal Removed.');
   };
 
   const handleRefreshInsights = async () => {
@@ -325,14 +496,15 @@ export default function Dashboard() {
 
   const handleClearData = async () => {
     if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      const res = await fetch(`${API_BASE_URL}/api/settings/clear-data`, { method: 'POST' });
-      if (res.ok) {
-        await clearCache();
-        setRawTransactions([]);
-        setRawBudgets([]);
-        setRawGoals([]);
-        showNotification('All Data Cleared Successfully.', 'info');
-      }
+      await clearCache();
+      setRawTransactions([]);
+      setRawBudgets([]);
+      setRawGoals([]);
+      setTodos([]);
+      setTrades([]);
+      setManualInvestments([]);
+      setTradingCapital({ invested_amount: 0, currency: 'USD' });
+      showNotification('All Data Cleared Successfully.', 'info');
     }
   };
 
@@ -348,11 +520,8 @@ export default function Dashboard() {
     }
     const result = await auth.access(usernameToUse, action);
     if (result.success) {
-      showNotification(`Successfully ${action === 'register' ? 'registered' : 'regained'} account: ${usernameToUse}`);
-      // Refresh all data
-      fetchTransactions();
-      fetchBudgets();
-      fetchGoals();
+      showNotification(`Successfully ${action === 'register' ? 'registered' : 'logged in'}: ${usernameToUse}`);
+      handleSync(true);
     } else {
       showNotification(result.error || 'Operation failed', 'error');
     }
@@ -363,16 +532,28 @@ export default function Dashboard() {
       transactions: rawTransactions,
       budgets: rawBudgets,
       goals: rawGoals,
+      todos,
+      events,
+      memories,
+      reminders,
+      trades,
+      manualInvestments,
+      tradingCapital,
       exportedAt: new Date().toISOString(),
       user: auth.user?.username
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     a.download = `manager_backup_${auth.user?.username || 'user'}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
     showNotification('Data exported successfully!');
   };
 
@@ -394,12 +575,222 @@ export default function Dashboard() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     a.download = `manager_export_${auth.user?.username || 'user'}.csv`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
     showNotification('CSV exported successfully!');
   };
+
+  const handleAddTodo = async (task: string, timeFrame?: string) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const newTodo = { 
+      id: Date.now(), 
+      task, 
+      is_completed: 0, 
+      created_at: new Date().toISOString(),
+      time_frame: timeFrame 
+    };
+    const updated = [newTodo, ...current];
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleToggleTodo = async (id: number, currentStatus: number) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const updated = current.map(t => t.id === id ? { ...t, is_completed: !currentStatus } : t);
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleDeleteTodo = async (id: number) => {
+    const current = await getCachedData<any[]>('todos') || [];
+    const updated = current.filter(t => t.id !== id);
+    await setCachedData('todos', updated);
+    setTodos(updated);
+  };
+
+  const handleAddEvent = async (event: any) => {
+    const current = await getCachedData<any[]>('events') || [];
+    const newEvent = { ...event, id: Date.now() };
+    const updated = [newEvent, ...current];
+    await setCachedData('events', updated);
+    setEvents(updated);
+    showNotification('Event added to calendar!');
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    const current = await getCachedData<any[]>('events') || [];
+    const updated = current.filter(e => e.id !== id);
+    await setCachedData('events', updated);
+    setEvents(updated);
+  };
+
+  const handleAddMemory = async (memory: any) => {
+    const current = await getCachedData<any[]>('memories') || [];
+    const newMemory = { ...memory, id: Date.now() };
+    const updated = [newMemory, ...current];
+    await setCachedData('memories', updated);
+    setMemories(updated);
+    showNotification('New memory recorded!');
+  };
+
+  const handleDeleteMemory = async (id: number) => {
+    const current = await getCachedData<any[]>('memories') || [];
+    const updated = current.filter(m => m.id !== id);
+    await setCachedData('memories', updated);
+    setMemories(updated);
+  };
+
+  const handleAddReminder = async (reminder: any) => {
+    const current = await getCachedData<any[]>('reminders') || [];
+    const newReminder = { ...reminder, id: Date.now() };
+    const updated = [newReminder, ...current];
+    await setCachedData('reminders', updated);
+    setReminders(updated);
+    showNotification('Reminder set!');
+  };
+
+  const handleDeleteReminder = async (id: number) => {
+    const current = await getCachedData<any[]>('reminders') || [];
+    const updated = current.filter(r => r.id !== id);
+    await setCachedData('reminders', updated);
+    setReminders(updated);
+  };
+
+  const handlePlaceTrade = async (trade: any) => {
+    const newTrade = { ...trade, id: Date.now(), status: 'open', currency: currencyCode, created_at: new Date().toISOString() };
+    
+    // Attempt Server
+    try {
+      const res = await fetch('/api/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTrade)
+      });
+      if (res.ok) {
+        showNotification('Trade journaled to database!');
+        fetchTrades(); // Refresh from server
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    const current = await getCachedData<any[]>('trades') || [];
+    const updated = [newTrade, ...current];
+    await setCachedData('trades', updated);
+    setTrades(updated);
+    showNotification('Trade journaled locally (Offline).');
+  };
+
+  const handleCloseTrade = async (id: number, pnl: number) => {
+    // Attempt Server
+    try {
+      const res = await fetch(`/api/trades/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed', pnl, closed_at: new Date().toISOString() })
+      });
+      if (res.ok) {
+        // Also update capital on server
+        const newCapitalTotal = convertedTradingCapital.invested_amount + pnl;
+        await fetch('/api/trading-capital', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invested_amount: newCapitalTotal, currency: currencyCode })
+        });
+        fetchTrades();
+        fetchTradingCapital();
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    const current = await getCachedData<any[]>('trades') || [];
+    const updated = current.map(t => t.id === id ? { ...t, status: 'closed', pnl, closed_at: new Date().toISOString() } : t);
+    await setCachedData('trades', updated);
+    setTrades(updated);
+
+    const newCapitalTotal = convertedTradingCapital.invested_amount + pnl;
+    const newCapital = { invested_amount: newCapitalTotal, currency: currencyCode };
+    await setCachedData('trading_capital', newCapital);
+    setTradingCapital(newCapital);
+  };
+
+  const handleAllocateCapital = async (amount: number) => {
+    const newCapital = { invested_amount: amount, currency: currencyCode };
+    
+    // Attempt Server
+    try {
+      const res = await fetch('/api/trading-capital', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCapital)
+      });
+      if (res.ok) {
+        showNotification('Capital updated in database!');
+        fetchTradingCapital();
+        return;
+      }
+    } catch (e) {}
+
+    // Fallback Local
+    await setCachedData('trading_capital', newCapital);
+    setTradingCapital(newCapital);
+    showNotification('Capital updated locally (Offline).');
+  };
+
+  // Automated Logic: Convert passed events to memories
+  useEffect(() => {
+    const processPassedEvents = async () => {
+      const now = new Date();
+      const passedEvents = events.filter(e => {
+        const eDate = new Date(e.date);
+        return eDate < now && !isSameDay(eDate, now);
+      });
+
+      if (passedEvents.length > 0) {
+        let changed = false;
+        const currentMemories = await getCachedData<any[]>('memories') || [];
+        const currentEvents = await getCachedData<any[]>('events') || [];
+        
+        let updatedMemories = [...currentMemories];
+        let updatedEvents = [...currentEvents];
+
+        passedEvents.forEach(e => {
+          const alreadyMemory = currentMemories.some(m => m.title === e.title && m.date === e.date);
+          if (!alreadyMemory) {
+            updatedMemories.push({
+              id: Date.now() + Math.random(),
+              title: e.title,
+              date: e.date,
+              description: e.description,
+              songs_of_the_day: e.songs_of_the_day
+            });
+            updatedEvents = updatedEvents.filter(ev => ev.id !== e.id);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          await setCachedData('memories', updatedMemories);
+          await setCachedData('events', updatedEvents);
+          setMemories(updatedMemories);
+          setEvents(updatedEvents);
+          showNotification('Passed events moved to memories!');
+        }
+      }
+    };
+
+    const interval = setInterval(processPassedEvents, 60000); // Check every minute
+    processPassedEvents();
+    return () => clearInterval(interval);
+  }, [events]);
 
   const totals = useMemo(() => {
     return transactions.reduce(
@@ -440,6 +831,11 @@ export default function Dashboard() {
     return chartData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
   }, [chartData]);
 
+  const handleTabClick = (tab: string) => {
+    navigate(tabToPath[tab] || '/dashboard');
+    setIsSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-bg-dark flex text-stone-100">
       {notification && (
@@ -461,11 +857,13 @@ export default function Dashboard() {
           </div>
 
           <nav className="space-y-1">
-            <NavItem icon={<LayoutDashboard className="w-5 h-5" />} label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => setActiveTab('Dashboard')} />
-            <NavItem icon={<PieChart className="w-5 h-5" />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} />
-            <NavItem icon={<TrendingUp className="w-5 h-5" />} label="Investments" active={activeTab === 'Investments'} onClick={() => setActiveTab('Investments')} />
-            <NavItem icon={<Target className="w-5 h-5" />} label="Budgets & Goals" active={activeTab === 'Budgets'} onClick={() => setActiveTab('Budgets')} />
-            <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} />
+            <NavItem icon={<LayoutDashboard className="w-5 h-5" />} label="Dashboard" active={activeTab === 'Dashboard'} onClick={() => handleTabClick('Dashboard')} />
+            <NavItem icon={<PieChart className="w-5 h-5" />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => handleTabClick('Analytics')} />
+            <NavItem icon={<Briefcase className="w-5 h-5" />} label="Investments" active={activeTab === 'Investments'} onClick={() => handleTabClick('Investments')} />
+            <NavItem icon={<TrendingUp className="w-5 h-5" />} label="Trading" active={activeTab === 'Trading'} onClick={() => handleTabClick('Trading')} />
+            <NavItem icon={<CalendarIcon className="w-5 h-5" />} label="Calendar" active={activeTab === 'Calendar'} onClick={() => handleTabClick('Calendar')} />
+            <NavItem icon={<Target className="w-5 h-5" />} label="Budgets & Goals" active={activeTab === 'Budgets'} onClick={() => handleTabClick('Budgets')} />
+            <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" active={activeTab === 'Settings'} onClick={() => handleTabClick('Settings')} />
           </nav>
         </div>
 
@@ -556,8 +954,55 @@ export default function Dashboard() {
               </div>
 
               {/* Dashboard: Form and Activity */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 space-y-8">
                 <TransactionForm onAdd={handleAddTransaction} currency={currentCurrency.symbol} />
+                
+                {/* Simplified Today's Date & Event */}
+                <div 
+                  onClick={() => handleTabClick('Calendar')}
+                  className="glass p-6 rounded-3xl border border-white/5 bg-white/[0.01] cursor-pointer hover:bg-white/[0.03] transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-primary/20 rounded-2xl text-primary group-hover:scale-110 transition-transform">
+                      <CalendarIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+                      <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest mt-0.5">Today's Highlight</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                    {events.filter(e => {
+                      const eDate = new Date(e.date);
+                      const today = new Date();
+                      return eDate.getDate() === today.getDate() && 
+                             eDate.getMonth() === today.getMonth() && 
+                             eDate.getFullYear() === today.getFullYear();
+                    }).length > 0 ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          <span className="text-sm font-bold text-stone-200">
+                            {events.find(e => {
+                              const eDate = new Date(e.date);
+                              const today = new Date();
+                              return eDate.getDate() === today.getDate() && 
+                                     eDate.getMonth() === today.getMonth() && 
+                                     eDate.getFullYear() === today.getFullYear();
+                            })?.title}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-stone-600 -rotate-90" />
+                      </div>
+                    ) : (
+                      <div className="text-sm text-stone-500 italic flex items-center justify-between">
+                        <span>No events scheduled today</span>
+                        <ChevronDown className="w-4 h-4 text-stone-600 -rotate-90" />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="lg:col-span-2 space-y-8">
                 <TransactionList transactions={filteredTransactions} onDelete={handleDeleteTransaction} currency={currentCurrency.symbol} />
@@ -614,7 +1059,13 @@ export default function Dashboard() {
                     <TrendingUp className="w-5 h-5 text-primary" />
                     3D Volume Analysis
                   </h2>
-                  <Spending3D data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} />
+                  {!isMobileScreen ? (
+                    <Spending3D data={chartData.length > 0 ? chartData : [{ category: 'No Data', amount: 1 }]} />
+                  ) : (
+                    <div className="h-[200px] w-full rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-stone-500 text-sm italic">
+                      3D Visualization disabled on mobile
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-4">
                   <h2 className="text-xl font-bold px-2 flex items-center gap-2 text-white">
@@ -720,12 +1171,104 @@ export default function Dashboard() {
                   {chartData.length === 0 && <p className="col-span-full text-center text-stone-600 italic py-4">No spending data available for this period.</p>}
                 </div>
               </div>
+
+              {/* Trading Analytics */}
+              <TradingAnalytics trades={convertedTrades} capital={convertedTradingCapital.invested_amount} currency={currentCurrency.symbol} />
             </div>
           )}
 
           {activeTab === 'Investments' && (
+            <div className="lg:col-span-3 space-y-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <InvestingForm onAdd={handleAddManualInvestment} currency={currentCurrency.code} />
+                
+                <div className="space-y-8">
+                  <div className="glass p-8 rounded-3xl border border-white/5 bg-primary/5 text-center">
+                    <h3 className="text-xl font-bold text-white mb-2">Trading Capital</h3>
+                    <p className="text-sm text-stone-400 mb-6">Allocate funds specifically for use in the Trading Simulator.</p>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="text-3xl font-bold text-white font-mono">
+                        <span className="text-sm text-stone-500 mr-1">{currentCurrency.symbol}</span>
+                        {convertedTradingCapital.invested_amount.toLocaleString()}
+                      </div>
+                      <form onSubmit={(e) => { e.preventDefault(); const amt = parseFloat((e.currentTarget.elements[0] as HTMLInputElement).value); if(amt >= 0) handleAllocateCapital(amt); }} className="flex items-center gap-3 w-full max-w-sm">
+                        <input type="number" step="0.01" min="0" required className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/30" placeholder={`Amount in ${currentCurrency.code}...`} />
+                        <button type="submit" className="px-6 py-3 bg-primary hover:bg-secondary text-white font-bold rounded-xl transition-all shadow-lg active:scale-95">Update</button>
+                      </form>
+                    </div>
+                  </div>
+
+                  <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
+                </div>
+              </div>
+
+              {/* Portfolio Summary */}
+              <div className="glass p-8 rounded-3xl border border-white/5">
+                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  Your Asset Portfolio
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {convertedManualInvestments.map((inv) => (
+                    <div key={inv.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{inv.asset_type}</div>
+                          <h4 className="text-white font-bold">{inv.asset_name}</h4>
+                        </div>
+                        <button onClick={() => handleDeleteManualInvestment(inv.id)} className="p-1.5 text-stone-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <div className="text-[10px] text-stone-500 uppercase font-bold">Qty</div>
+                          <div className="text-sm font-mono text-white">{inv.quantity}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-stone-500 uppercase font-bold">Cost</div>
+                          <div className="text-sm font-mono text-emerald-500">{currentCurrency.symbol}{inv.total_cost.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {manualInvestments.length === 0 && <div className="col-span-full text-center py-10 text-stone-600 italic">No assets in your portfolio yet.</div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'Trading' && (
             <div className="lg:col-span-3">
-              <InvestmentCards investments={investments} currency={currentCurrency.symbol} />
+              <TradingJournal
+                capital={convertedTradingCapital.invested_amount}
+                trades={convertedTrades}
+                livePrices={liveAssetPrices}
+                onPlaceTrade={handlePlaceTrade}
+                onCloseTrade={handleCloseTrade}
+                currency={currentCurrency.symbol}
+                showNotification={showNotification}
+              />
+            </div>
+          )}
+
+          {activeTab === 'Calendar' && (
+            <div className="lg:col-span-3 h-[800px]">
+              <Calendar 
+                todos={todos}
+                onAddTodo={handleAddTodo}
+                onToggleTodo={handleToggleTodo}
+                onDeleteTodo={handleDeleteTodo}
+                events={events}
+                onAddEvent={handleAddEvent}
+                onDeleteEvent={handleDeleteEvent}
+                memories={memories}
+                onAddMemory={handleAddMemory}
+                onDeleteMemory={handleDeleteMemory}
+                reminders={reminders}
+                onAddReminder={handleAddReminder}
+                onDeleteReminder={handleDeleteReminder}
+              />
             </div>
           )}
 
