@@ -64,6 +64,21 @@
       "step": 13,
       "description": "Linked Events and Memories: Automatic conversion now preserves description and songs_of_the_day. Memory UI updated to display these fields.",
       "files": ["src/components/Calendar.tsx", "src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 14,
+      "description": "Implemented robust Global Currency Support (USD, EUR, GBP, INR, TZS, JPY, etc.) with real-time conversion rates and consistent symbol rendering across all dashboards.",
+      "files": ["src/pages/Dashboard.tsx", "src/utils/currency.ts"]
+    },
+    {
+      "step": 15,
+      "description": "Added 'Sync to Cloud' functionality with a dedicated button in the header and settings. Includes a visual feedback system for sync status and 'Last Synced' timestamps.",
+      "files": ["src/pages/Dashboard.tsx"]
+    },
+    {
+      "step": 16,
+      "description": "Reorganized Transaction Form layout for better UX: 'Scan Receipt with AI' moved to the top, and 'Expense/Income' toggle moved to the bottom of the form.",
+      "files": ["src/components/TransactionForm.tsx"]
     }
   ]
 }
