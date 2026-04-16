@@ -1,5 +1,15 @@
 {
   "name": "Manager",
   "description": "A smart financial manager with AI insights, receipt tracking, and investment planning.",
-  "requestFramePermissions": ["camera"]
+  "requestFramePermissions": ["camera","notifications"],
+  "permissions": ["storage", "camera", "notifications"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
+import { db, initRemoteDB } from '../services/db';
 
 interface User {
   id: string;
@@ -9,6 +10,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   access: (username: string, action: 'login' | 'register') => Promise<{ success: boolean; error?: string }>;
+  syncAuth: (username: string, action: 'login' | 'register') => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -33,35 +35,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchUser();
+    initRemoteDB(); // Ensure tables are ready on Turso
   }, []);
 
   const access = async (username: string, action: 'login' | 'register'): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch('/api/auth/access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, action })
+      // Instant local profile creation - no blocking on server fetch
+      const newUser = { id: username, username };
+      await Preferences.set({ key: 'manager_user', value: JSON.stringify(newUser) });
+      setUser(newUser);
+      return { success: true };
+    } catch (err) {
+      console.error("Local access failed:", err);
+      return { success: false, error: "Failed to create local profile." };
+    }
+  };
+
+  const syncAuth = async (username: string, action: 'login' | 'register'): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (action === 'register') {
+        // Attempt to create user in Turso
+        try {
+          await db.execute({
+            sql: "INSERT INTO users (username) VALUES (?)",
+            args: [username]
+          });
+        } catch (err: any) {
+          if (!err.message?.includes('UNIQUE')) {
+            throw err;
+          }
+          // If already exists, just continue to login logic
+        }
+      }
+
+      // Find user in Turso
+      const result = await db.execute({
+        sql: "SELECT * FROM users WHERE username = ?",
+        args: [username]
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        const newUser = { id: result.id.toString(), username: result.username };
+      if (result.rows.length > 0) {
+        const remoteUser = result.rows[0];
+        const newUser = { id: remoteUser.id.toString(), username: remoteUser.username as string };
         await Preferences.set({ key: 'manager_user', value: JSON.stringify(newUser) });
         setUser(newUser);
         return { success: true };
       } else {
-        return { success: false, error: result.error || "Access failed" };
+        return { success: false, error: "User not found in remote database." };
       }
-    } catch (err) {
-      console.error("Access failed:", err);
-      return { success: false, error: "Server connection error." };
+    } catch (err: any) {
+      console.error("Sync failed:", err);
+      return { success: false, error: err.message || "Database connection error." };
     }
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
       await Preferences.remove({ key: 'manager_user' });
       setUser(null);
     } catch (err) {
@@ -71,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, access, logout, loading }}>
+    <AuthContext.Provider value={{ user, access, syncAuth, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

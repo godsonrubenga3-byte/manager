@@ -233,7 +233,7 @@ export default function TradingSimulator({ capital, trades, livePrices, onPlaceT
                 <div key={trade.id} className="p-4 bg-white/5 rounded-xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${trade.direction === 'Long' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                      <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${trade.direction === 'Long' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
                         {trade.direction}
                       </span>
                       <span className="font-bold text-white text-sm">{trade.asset}</span>
@@ -246,7 +246,7 @@ export default function TradingSimulator({ capital, trades, livePrices, onPlaceT
                     <div className={`text-sm font-bold font-mono ${isProfit ? 'text-emerald-500' : 'text-red-500'}`}>
                       {isProfit ? '+' : ''}{unrealizedPnl.toFixed(2)} {currency}
                     </div>
-                    <div className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">Unrealized PnL</div>
+                    <div className="text-xs text-stone-500 uppercase tracking-widest font-bold">Unrealized PnL</div>
                   </div>
                   <button 
                     onClick={() => onCloseTrade(trade.id, unrealizedPnl)}
@@ -274,7 +274,7 @@ export default function TradingSimulator({ capital, trades, livePrices, onPlaceT
                    <span className="font-bold text-white text-sm">{trade.asset}</span>
                    <span className="text-xs text-stone-500">{trade.direction}</span>
                  </div>
-                 <div className="text-[10px] text-stone-500">
+                 <div className="text-xs text-stone-500">
                    Closed: {new Date(trade.closed_at!).toLocaleString()}
                  </div>
                </div>

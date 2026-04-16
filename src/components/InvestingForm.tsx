@@ -59,7 +59,7 @@ export default function InvestingForm({ onAdd, currency }: InvestingFormProps) {
           <Briefcase className="w-6 h-6 text-primary" />
           Log New Investment
         </h2>
-        <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[10px] font-bold text-primary uppercase tracking-widest">
+        <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-xs font-bold text-primary uppercase tracking-widest">
           Portfolio Tracker
         </div>
       </div>

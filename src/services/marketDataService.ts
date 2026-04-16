@@ -18,11 +18,16 @@ export async function fetchMarketData(symbol: string): Promise<number | null> {
   try {
     let price: number | null = null;
 
-    if (symbol === 'BTCUSDT') {
+    if (symbol === 'BTCUSDT' || symbol === 'BTCUSD') {
       const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
       const data = await res.json();
       price = parseFloat(data.price);
     } 
+    else if (symbol === 'BNBUSD' || symbol === 'BNBUSDT') {
+      const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
+      const data = await res.json();
+      price = parseFloat(data.price);
+    }
     else if (symbol === 'BBTCUSD') {
       // Using Binance BTCUSDT as a proxy for BBTCUSD for standard tracking
       const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');

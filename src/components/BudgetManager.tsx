@@ -36,7 +36,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
                 <Target className="w-6 h-6 text-primary" />
                 Budget Planner
             </h2>
-            <div className="px-3 py-1 bg-amber-500/10 rounded-full border border-amber-500/20 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+            <div className="px-3 py-1 bg-amber-500/10 rounded-full border border-amber-500/20 text-xs font-bold text-amber-500 uppercase tracking-widest">
                 Smart Limits
             </div>
         </div>
@@ -82,7 +82,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="text-white font-bold text-sm mb-1">{budget.category}</h4>
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
                         <span className={isOver ? 'text-red-500' : 'text-emerald-500'}>
                           {currency}{spent.toLocaleString()}
                         </span>
@@ -110,7 +110,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
                           style={{ width: `${percent}%` }}
                         ></div>
                       </div>
-                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
                         <span className={isOver ? 'text-red-500/80' : 'text-stone-600'}>
                           {isOver ? 'Limit Exceeded' : 'Under Control'}
                         </span>

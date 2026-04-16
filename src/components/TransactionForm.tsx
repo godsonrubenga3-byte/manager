@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Tag, FileText, Scan } from 'lucide-react';
-import ReceiptScanner from './ReceiptScanner';
+import { PlusCircle, Tag, FileText } from 'lucide-react';
 
 interface TransactionFormProps {
   onAdd: (transaction: any) => void;
@@ -12,22 +11,10 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
   const [category, setCategory] = useState('Food');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [showScanner, setShowScanner] = useState(false);
 
   const categories = [
     'Food', 'Transport', 'Rent', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Education', 'Business', 'Salary', 'Other'
   ];
-
-  const handleScanComplete = (data: any) => {
-    if (data.amount) setAmount(data.amount.toString());
-    if (data.category && categories.includes(data.category)) {
-      setCategory(data.category);
-    } else if (data.category) {
-      setCategory('Other');
-    }
-    if (data.description) setDescription(data.description);
-    setShowScanner(false);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,23 +40,6 @@ export default function TransactionForm({ onAdd, currency }: TransactionFormProp
           Add Transaction
         </h2>
       </div>
-
-      {/* 1. Scanning Receipt at the top */}
-      <button
-        type="button"
-        onClick={() => setShowScanner(true)}
-        className="w-full py-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl transition-all flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-wider shadow-sm"
-      >
-        <Scan className="w-5 h-5" />
-        Scan Receipt with AI
-      </button>
-
-      {showScanner && (
-        <ReceiptScanner 
-          onScan={handleScanComplete} 
-          onClose={() => setShowScanner(false)} 
-        />
-      )}
 
       <div className="space-y-4 pt-2">
         <div className="relative">

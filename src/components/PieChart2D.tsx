@@ -37,7 +37,7 @@ export default function PieChart2D({ data, currency }: PieChart2DProps) {
           <div className="text-xl font-mono font-bold text-primary">
             {total.toLocaleString()} <span className="text-xs text-stone-500">{currency}</span>
           </div>
-          <div className="text-[10px] text-stone-500 font-bold uppercase tracking-tight">Total Period Spend</div>
+          <div className="text-xs text-stone-500 font-bold uppercase tracking-tight">Total Period Spend</div>
         </div>
       </div>
       
@@ -104,7 +104,7 @@ export default function PieChart2D({ data, currency }: PieChart2DProps) {
         
         <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
           <div className="text-2xl font-bold text-white">{total > 0 ? '100%' : '0%'}</div>
-          <div className="text-[10px] text-stone-500 font-bold uppercase">Expenses</div>
+          <div className="text-xs text-stone-500 font-bold uppercase">Expenses</div>
         </div>
       </div>
     </div>

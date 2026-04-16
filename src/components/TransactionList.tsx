@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { format } from 'date-fns';
-import { Trash2, ArrowUpRight, ArrowDownLeft, Receipt, X } from 'lucide-react';
+import { Trash2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Transaction } from '../services/geminiService';
 
 interface TransactionListProps {
@@ -10,8 +10,6 @@ interface TransactionListProps {
 }
 
 export default function TransactionList({ transactions, onDelete, currency }: TransactionListProps) {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold px-2 text-white flex items-center gap-2">
@@ -31,17 +29,8 @@ export default function TransactionList({ transactions, onDelete, currency }: Tr
                 <div className="min-w-0">
                   <div className="font-bold text-stone-100 flex items-center gap-2 truncate">
                     {t.category}
-                    {t.image && (
-                      <button
-                        onClick={() => setSelectedImage(t.image)}
-                        className="p-1 hover:bg-white/10 rounded-md text-stone-500 hover:text-primary transition-colors flex items-center justify-center"
-                        title="View Receipt"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                      </button>
-                    )}
                   </div>
-                  <div className="text-[10px] text-stone-500 flex items-center gap-2 font-bold uppercase tracking-wider">
+                  <div className="text-xs text-stone-500 flex items-center gap-2 font-bold uppercase tracking-wider">
                     {format(new Date(t.date), 'MMM dd, yyyy')}
                     {t.description && <span className="before:content-['•'] before:mr-2 truncate max-w-[120px] normal-case tracking-normal">{t.description}</span>}
                   </div>
@@ -62,32 +51,6 @@ export default function TransactionList({ transactions, onDelete, currency }: Tr
           ))
         )}
       </div>
-
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="relative max-w-2xl w-full bg-card-dark rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="p-4 bg-stone-900/50 flex items-center justify-center min-h-[300px]">
-              <img
-                src={selectedImage}
-                alt="Receipt"
-                className="w-full h-auto max-h-[70vh] object-contain rounded-xl shadow-lg"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <div className="p-6 text-center border-t border-white/5 bg-card-dark">
-                <div className="text-white font-bold mb-1">Receipt Preview</div>
-                <div className="text-stone-500 text-xs font-medium tracking-wide">AI Verified Payment Proof</div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

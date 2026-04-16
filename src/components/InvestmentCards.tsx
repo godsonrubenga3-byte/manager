@@ -56,7 +56,7 @@ export default function InvestmentCards({ investments, currency }: InvestmentCar
           <TrendingUp className="w-6 h-6 text-primary" />
           Investment Opportunities
         </h2>
-        <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+        <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 text-xs font-bold text-stone-500 uppercase tracking-widest">
             Market Insights
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function InvestmentCards({ investments, currency }: InvestmentCar
             
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors leading-tight max-w-[70%]">{inv.name}</h3>
-              <span className={`px-2.5 py-1 rounded-xl text-[10px] uppercase font-bold tracking-widest border ${
+              <span className={`px-2.5 py-1 rounded-xl text-xs uppercase font-bold tracking-widest border ${
                 inv.risk === 'Low' || inv.risk === 'Very Low' 
                     ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
                     : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
@@ -85,11 +85,11 @@ export default function InvestmentCards({ investments, currency }: InvestmentCar
             
             <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5 bg-white/[0.01] -mx-6 px-6 -mb-6 pb-6">
               <div>
-                <div className="text-[10px] text-stone-600 uppercase font-bold tracking-widest mb-1.5">Est. Return</div>
+                <div className="text-xs text-stone-600 uppercase font-bold tracking-widest mb-1.5">Est. Return</div>
                 <div className="text-emerald-500 font-mono font-bold text-sm">{inv.expectedReturn}</div>
               </div>
               <div>
-                <div className="text-[10px] text-stone-600 uppercase font-bold tracking-widest mb-1.5">Min. Amount</div>
+                <div className="text-xs text-stone-600 uppercase font-bold tracking-widest mb-1.5">Min. Amount</div>
                 <div className="text-white font-mono font-bold text-sm">
                   {inv.minAmount.includes('₹') || inv.minAmount.includes('TZS') || inv.minAmount.includes('$') || inv.minAmount.includes('€') || inv.minAmount.includes('£')
                     ? inv.minAmount 

@@ -42,7 +42,7 @@ export default function TradingAnalytics({ trades, capital, currency }: TradingA
         <div className="glass p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
           <div className="flex items-center gap-2 mb-2 text-stone-500">
             <Target className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Win Rate</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Win Rate</span>
           </div>
           <div className="text-2xl font-bold text-white font-mono">
             {winRate.toFixed(1)}%
@@ -53,7 +53,7 @@ export default function TradingAnalytics({ trades, capital, currency }: TradingA
         <div className="glass p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
           <div className="flex items-center gap-2 mb-2 text-stone-500">
             {totalPnl >= 0 ? <TrendingUp className="w-4 h-4 text-emerald-500" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
-            <span className="text-[10px] font-bold uppercase tracking-widest">Total PnL</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Total PnL</span>
           </div>
           <div className={`text-2xl font-bold font-mono ${totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
             {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(2)}
@@ -64,7 +64,7 @@ export default function TradingAnalytics({ trades, capital, currency }: TradingA
         <div className="glass p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
           <div className="flex items-center gap-2 mb-2 text-stone-500">
             <Award className="w-4 h-4 text-amber-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Best Asset</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Best Asset</span>
           </div>
           <div className="text-xl font-bold text-white truncate">
             {bestAsset}
@@ -75,7 +75,7 @@ export default function TradingAnalytics({ trades, capital, currency }: TradingA
         <div className="glass p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
           <div className="flex items-center gap-2 mb-2 text-stone-500">
             <Activity className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Capital ROI</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Capital ROI</span>
           </div>
           <div className="text-2xl font-bold text-primary font-mono">
             {capital > 0 ? ((totalPnl / capital) * 100).toFixed(1) : '0.0'}%

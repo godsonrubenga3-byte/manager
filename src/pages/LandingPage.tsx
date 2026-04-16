@@ -70,8 +70,8 @@ export default function LandingPage() {
             <div className="relative">
               <div className="glass p-8 rounded-3xl shadow-2xl backdrop-blur-xl max-w-md mx-auto lg:ml-auto">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Wallet className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg shadow-primary/30">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white">+ 2,450.00</p>
@@ -146,7 +146,9 @@ export default function LandingPage() {
       <section className="py-32 text-center">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="glass p-12 lg:p-20 rounded-3xl shadow-2xl">
-            <Shield className="w-20 h-20 text-primary mx-auto mb-8 opacity-75" />
+            <div className="w-24 h-24 rounded-3xl overflow-hidden mx-auto mb-8 shadow-2xl shadow-primary/20 animate-float">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+            </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Ready to Start?</h2>
             <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
               Sign up today and get complete access to AI-powered financial management.
@@ -169,8 +171,8 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-                    <Wallet className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-primary/30">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
                   </div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Manager</h3>
               </div>

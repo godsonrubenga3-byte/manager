@@ -39,7 +39,7 @@ export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete, currenc
                 <Target className="w-6 h-6 text-primary" />
                 Savings Goals
             </h2>
-            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[10px] font-bold text-primary uppercase tracking-widest">
+            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-xs font-bold text-primary uppercase tracking-widest">
                 AI Powered Tracking
             </div>
         </div>
@@ -93,11 +93,11 @@ export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete, currenc
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="relative group/input">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-primary font-bold opacity-0 group-focus-within/input:opacity-100 transition-opacity">{currency}</span>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-primary font-bold opacity-0 group-focus-within/input:opacity-100 transition-opacity">{currency}</span>
                         <input
                             type="number"
                             placeholder="Add to savings..."
-                            className="w-32 pl-3 pr-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white outline-none focus:ring-2 focus:ring-primary/20 focus:pl-6 focus:border-primary transition-all placeholder:text-[10px]"
+                            className="w-32 pl-3 pr-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white outline-none focus:ring-2 focus:ring-primary/20 focus:pl-6 focus:border-primary transition-all placeholder:text-xs"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     const val = (e.target as HTMLInputElement).value;
@@ -126,8 +126,8 @@ export default function SavingsGoals({ goals, onAdd, onUpdate, onDelete, currenc
                         ></div>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                          <span className="text-[10px] text-stone-600 font-bold uppercase tracking-wider">{isComplete ? 'Goal Met!' : 'In Progress'}</span>
-                          <span className="text-[10px] text-primary font-bold uppercase tracking-widest">
+                          <span className="text-xs text-stone-600 font-bold uppercase tracking-wider">{isComplete ? 'Goal Met!' : 'In Progress'}</span>
+                          <span className="text-xs text-primary font-bold uppercase tracking-widest">
                             {Math.round(percent)}% Complete
                           </span>
                       </div>
