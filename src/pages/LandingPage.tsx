@@ -1,6 +1,7 @@
-import React from 'react';
-import { Wallet, PieChart, TrendingUp, Target, Shield, Brain, ArrowRight } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Wallet, PieChart, TrendingUp, Target, Shield, Brain, ArrowRight, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 const features = [
   {
@@ -37,8 +38,32 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const { theme, toggleTheme, setTheme } = useTheme();
+
+  // "Hidden Gem": Trigger light theme for potential new users on first land
+  useEffect(() => {
+    const checkFirstVisit = async () => {
+      const hasVisited = localStorage.getItem('has_visited_landing');
+      if (!hasVisited) {
+        setTheme('light');
+        localStorage.setItem('has_visited_landing', 'true');
+      }
+    };
+    checkFirstVisit();
+  }, [setTheme]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-bg-dark via-bg-dark to-bg-dark">
+    <div className="min-h-screen bg-gradient-to-b from-bg-dark via-bg-dark to-bg-dark transition-colors duration-300">
+      {/* Theme Toggle for Landing */}
+      <div className="fixed top-6 right-6 z-50">
+        <button 
+          onClick={toggleTheme}
+          className="p-3 glass rounded-2xl text-white hover:scale-110 transition-all shadow-2xl"
+        >
+          {theme === 'dark' ? <Sun className="w-6 h-6 text-amber-500" /> : <Moon className="w-6 h-6 text-primary" />}
+        </button>
+      </div>
+
       {/* Hero */}
       <section className="pt-32 pb-40 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
@@ -197,8 +222,8 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-white mb-6">Legal</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
               </ul>
             </div>
           </div>

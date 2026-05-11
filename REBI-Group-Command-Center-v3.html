@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REBI Group — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════
+   GLOBAL RESET & BASE
+═══════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Outfit',sans-serif;font-size:14px;transition:background 0.4s,color 0.4s;}
+
+/* ═══════════════════════════════════
+   DARK MODE OVERLAY
+═══════════════════════════════════ */
+[data-mode="light"]{--dm-overlay:rgba(255,255,255,0);}
+[data-mode="dark"]{--dm-overlay:rgba(0,0,0,0.55);}
+.dark-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:var(--dm-overlay);transition:background 0.4s;
+}
+
+/* ═══════════════════════════════════
+   DASHBOARD THEMES (8 unique)
+═══════════════════════════════════ */
+
+/* 0: EXECUTIVE – Slate Grey */
+.theme-executive{
+  --bg:#f0f0f2; --bg2:#e4e4e8; --surface:#ffffff; --surface2:#f5f5f7;
+  --border:#d0d0d8; --accent:#4b5563; --accent2:#6b7280; --accentbright:#1f2937;
+  --text:#1a1a2e; --text2:#4b5563; --text3:#9ca3af;
+  --card-shadow:0 2px 12px rgba(75,85,99,0.12);
+  --header-bg:linear-gradient(135deg,#1f2937 0%,#374151 50%,#4b5563 100%);
+  --header-text:#fff; --pill-bg:#374151; --pill-text:#e5e7eb;
+  --chart1:#4b5563;--chart2:#6b7280;--chart3:#9ca3af;--chart4:#d1d5db;
+  --tab-active:#1f2937; --badge-bg:rgba(75,85,99,0.12); --badge-color:#374151;
+  --progress:#374151; --kanban-bg:#e8e8ec;
+}
+/* 1: FINANCIAL – Burgundy/Wine */
+.theme-financial{
+  --bg:#fdf5f5; --bg2:#f9eaea; --surface:#ffffff; --surface2:#fef2f2;
+  --border:#f0d0d0; --accent:#9b2335; --accent2:#b91c1c; --accentbright:#7f1d1d;
+  --text:#1a0a0a; --text2:#7f1d1d; --text3:#b91c1c;
+  --card-shadow:0 2px 12px rgba(155,35,53,0.1);
+  --header-bg:linear-gradient(135deg,#7f1d1d 0%,#9b2335 50%,#b91c1c 100%);
+  --header-text:#fff; --pill-bg:#7f1d1d; --pill-text:#fecaca;
+  --chart1:#9b2335;--chart2:#b91c1c;--chart3:#dc2626;--chart4:#fca5a5;
+  --tab-active:#7f1d1d; --badge-bg:rgba(155,35,53,0.1); --badge-color:#9b2335;
+  --progress:#9b2335; --kanban-bg:#fce8e8;
+}
+/* 2: SALES – Warm Brown/Mocha */
+.theme-sales{
+  --bg:#faf7f4; --bg2:#f2ebe3; --surface:#ffffff; --surface2:#fdf8f4;
+  --border:#e0cfc0; --accent:#92400e; --accent2:#b45309; --accentbright:#78350f;
+  --text:#1c1209; --text2:#78350f; --text3:#b45309;
+  --card-shadow:0 2px 12px rgba(146,64,14,0.1);
+  --header-bg:linear-gradient(135deg,#78350f 0%,#92400e 50%,#b45309 100%);
+  --header-text:#fff; --pill-bg:#78350f; --pill-text:#fde68a;
+  --chart1:#92400e;--chart2:#b45309;--chart3:#d97706;--chart4:#fcd34d;
+  --tab-active:#78350f; --badge-bg:rgba(146,64,14,0.1); --badge-color:#92400e;
+  --progress:#92400e; --kanban-bg:#f2ebe3;
+}
+/* 3: MARKETING – Forest Green */
+.theme-marketing{
+  --bg:#f0faf5; --bg2:#e0f5ea; --surface:#ffffff; --surface2:#f0faf5;
+  --border:#bbddc9; --accent:#15803d; --accent2:#166534; --accentbright:#14532d;
+  --text:#052e16; --text2:#166534; --text3:#22c55e;
+  --card-shadow:0 2px 12px rgba(21,128,61,0.1);
+  --header-bg:linear-gradient(135deg,#14532d 0%,#15803d 50%,#16a34a 100%);
+  --header-text:#fff; --pill-bg:#14532d; --pill-text:#bbf7d0;
+  --chart1:#15803d;--chart2:#16a34a;--chart3:#22c55e;--chart4:#86efac;
+  --tab-active:#14532d; --badge-bg:rgba(21,128,61,0.1); --badge-color:#15803d;
+  --progress:#15803d; --kanban-bg:#e0f5ea;
+}
+/* 4: OPERATIONS – Ocean Blue */
+.theme-operations{
+  --bg:#f0f7ff; --bg2:#e0efff; --surface:#ffffff; --surface2:#f0f7ff;
+  --border:#bbd4f0; --accent:#1d4ed8; --accent2:#1e40af; --accentbright:#1e3a8a;
+  --text:#0a1628; --text2:#1e3a8a; --text3:#3b82f6;
+  --card-shadow:0 2px 12px rgba(29,78,216,0.1);
+  --header-bg:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 50%,#2563eb 100%);
+  --header-text:#fff; --pill-bg:#1e3a8a; --pill-text:#bfdbfe;
+  --chart1:#1d4ed8;--chart2:#2563eb;--chart3:#3b82f6;--chart4:#93c5fd;
+  --tab-active:#1e3a8a; --badge-bg:rgba(29,78,216,0.1); --badge-color:#1d4ed8;
+  --progress:#1d4ed8; --kanban-bg:#e0efff;
+}
+/* 5: HR – Golden Amber */
+.theme-hr{
+  --bg:#fffbeb; --bg2:#fef3c7; --surface:#ffffff; --surface2:#fffbeb;
+  --border:#fcd34d; --accent:#b45309; --accent2:#d97706; --accentbright:#92400e;
+  --text:#1c1000; --text2:#78350f; --text3:#d97706;
+  --card-shadow:0 2px 12px rgba(180,83,9,0.1);
+  --header-bg:linear-gradient(135deg,#78350f 0%,#b45309 50%,#d97706 100%);
+  --header-text:#fff; --pill-bg:#78350f; --pill-text:#fef3c7;
+  --chart1:#d97706;--chart2:#f59e0b;--chart3:#fbbf24;--chart4:#fde68a;
+  --tab-active:#92400e; --badge-bg:rgba(180,83,9,0.1); --badge-color:#b45309;
+  --progress:#d97706; --kanban-bg:#fef3c7;
+}
+/* 6: INVENTORY – Teal/Emerald */
+.theme-inventory{
+  --bg:#f0fdfa; --bg2:#ccfbf1; --surface:#ffffff; --surface2:#f0fdfa;
+  --border:#99f6e4; --accent:#0d9488; --accent2:#0f766e; --accentbright:#134e4a;
+  --text:#022c22; --text2:#0f766e; --text3:#14b8a6;
+  --card-shadow:0 2px 12px rgba(13,148,136,0.1);
+  --header-bg:linear-gradient(135deg,#134e4a 0%,#0d9488 50%,#14b8a6 100%);
+  --header-text:#fff; --pill-bg:#134e4a; --pill-text:#ccfbf1;
+  --chart1:#0d9488;--chart2:#14b8a6;--chart3:#2dd4bf;--chart4:#99f6e4;
+  --tab-active:#0f766e; --badge-bg:rgba(13,148,136,0.1); --badge-color:#0d9488;
+  --progress:#0d9488; --kanban-bg:#ccfbf1;
+}
+/* 7: SUPPORT – Royal Purple */
+.theme-support{
+  --bg:#faf5ff; --bg2:#f3e8ff; --surface:#ffffff; --surface2:#faf5ff;
+  --border:#d8b4fe; --accent:#7c3aed; --accent2:#6d28d9; --accentbright:#4c1d95;
+  --text:#1a0533; --text2:#4c1d95; --text3:#7c3aed;
+  --card-shadow:0 2px 12px rgba(124,58,237,0.1);
+  --header-bg:linear-gradient(135deg,#4c1d95 0%,#7c3aed 50%,#8b5cf6 100%);
+  --header-text:#fff; --pill-bg:#4c1d95; --pill-text:#ede9fe;
+  --chart1:#7c3aed;--chart2:#8b5cf6;--chart3:#a78bfa;--chart4:#c4b5fd;
+  --tab-active:#4c1d95; --badge-bg:rgba(124,58,237,0.1); --badge-color:#7c3aed;
+  --progress:#7c3aed; --kanban-bg:#f3e8ff;
+}
+
+/* ═══════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════ */
+#shell{
+  display:flex; flex-direction:column; height:100vh;
+  background:var(--bg); transition:background 0.4s;
+}
+
+/* ═══════════════════════════════════
+   TOP HEADER BAR
+═══════════════════════════════════ */
+#topbar{
+  flex-shrink:0; height:58px;
+  background:var(--header-bg);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; position:relative; z-index:100;
+  box-shadow:0 2px 16px rgba(0,0,0,0.2);
+}
+.topbar-brand{
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.brand-logo{
+  width:34px; height:34px; border-radius:9px;
+  background:rgba(255,255,255,0.2); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif; font-weight:800; font-size:13px; color:#fff;
+  border:1px solid rgba(255,255,255,0.3);
+}
+.brand-name{
+  font-family:'Playfair Display',serif; font-weight:700; font-size:16px;
+  color:#fff; letter-spacing:-0.3px;
+}
+.brand-sub{font-size:10px; color:rgba(255,255,255,0.65); letter-spacing:1px; margin-top:1px;}
+.topbar-right{display:flex; align-items:center; gap:10px;}
+.topbar-search{
+  display:flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2);
+  border-radius:9px; padding:6px 12px; backdrop-filter:blur(4px);
+}
+.topbar-search input{
+  background:transparent; border:none; outline:none;
+  color:#fff; font-family:'Outfit',sans-serif; font-size:12px; width:150px;
+}
+.topbar-search input::placeholder{color:rgba(255,255,255,0.55);}
+.topbar-icon-btn{
+  width:34px; height:34px; border-radius:9px;
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:15px; transition:background 0.2s; position:relative;
+  backdrop-filter:blur(4px);
+}
+.topbar-icon-btn:hover{background:rgba(255,255,255,0.25);}
+.notif-dot{
+  position:absolute; top:5px; right:5px; width:7px; height:7px;
+  border-radius:50%; background:#ef4444; border:1.5px solid #fff;
+  animation:blink 2s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.dark-toggle{
+  display:flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2);
+  border-radius:9px; padding:5px 10px; cursor:pointer; backdrop-filter:blur(4px);
+}
+.toggle-track{
+  width:32px; height:17px; border-radius:20px; background:rgba(255,255,255,0.3);
+  position:relative; transition:background 0.3s;
+}
+[data-mode="dark"] .toggle-track{background:rgba(255,255,255,0.7);}
+.toggle-knob{
+  position:absolute; top:2.5px; left:2.5px; width:12px; height:12px;
+  border-radius:50%; background:#fff; transition:transform 0.3s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.3);
+}
+[data-mode="dark"] .toggle-knob{transform:translateX(15px); background:#1f2937;}
+.toggle-label{font-size:11px; color:#fff; font-weight:600;}
+
+/* ═══════════════════════════════════
+   ICON TAB BAR (swipe navigation)
+═══════════════════════════════════ */
+#tabbar{
+  flex-shrink:0; height:72px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  gap:4px; padding:8px 12px; overflow-x:auto;
+  box-shadow:0 1px 8px rgba(0,0,0,0.06);
+  transition:background 0.4s, border-color 0.4s;
+}
+#tabbar::-webkit-scrollbar{height:0;}
+.tab-item{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:7px 14px; border-radius:12px; cursor:pointer;
+  transition:all 0.2s; min-width:68px; position:relative;
+  border:1.5px solid transparent;
+}
+.tab-item:hover{background:var(--bg2);}
+.tab-item.active{
+  background:var(--tab-active); color:#fff;
+  border-color:transparent;
+  box-shadow:0 3px 12px rgba(0,0,0,0.2);
+  transform:translateY(-2px);
+}
+.tab-icon{font-size:20px; line-height:1; transition:transform 0.2s;}
+.tab-item.active .tab-icon{transform:scale(1.15);}
+.tab-label{font-size:9.5px; font-weight:700; letter-spacing:0.3px; color:var(--text2); white-space:nowrap; transition:color 0.2s;}
+.tab-item.active .tab-label{color:rgba(255,255,255,0.9);}
+.tab-badge{
+  position:absolute; top:4px; right:8px;
+  background:#ef4444; color:#fff; font-size:9px; font-weight:800;
+  border-radius:20px; padding:1px 5px; min-width:16px; text-align:center;
+  border:1.5px solid var(--surface);
+}
+
+/* ═══════════════════════════════════
+   VIEWPORT (swipe container)
+═══════════════════════════════════ */
+#viewport{
+  flex:1; overflow:hidden; position:relative;
+  /* subtract tabbar(72) + topbar(58) + notifbar(36) */
+}
+#slider{
+  display:flex; height:100%;
+  transition:transform 0.45s cubic-bezier(0.4,0,0.2,1);
+  will-change:transform;
+}
+.page{
+  flex-shrink:0; width:100vw; height:100%;
+  overflow-y:auto; overflow-x:hidden;
+  padding:20px 22px 16px;
+  transition:background 0.4s;
+}
+.page::-webkit-scrollbar{width:4px;}
+.page::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+
+/* ═══════════════════════════════════
+   NOTIFICATION TICKER
+═══════════════════════════════════ */
+#notifbar{
+  flex-shrink:0; height:34px;
+  background:var(--pill-bg);
+  display:flex; align-items:center; overflow:hidden;
+  border-top:1px solid rgba(255,255,255,0.1);
+}
+.notif-prefix{
+  flex-shrink:0; padding:0 14px;
+  font-size:10px; font-weight:800; letter-spacing:1.5px;
+  color:rgba(255,255,255,0.6); text-transform:uppercase;
+  border-right:1px solid rgba(255,255,255,0.15);
+  white-space:nowrap;
+}
+.notif-track{flex:1; overflow:hidden; position:relative; height:100%;}
+.notif-inner{
+  display:flex; align-items:center; height:100%;
+  white-space:nowrap;
+  animation:ticker 35s linear infinite;
+}
+.notif-inner:hover{animation-play-state:paused;}
+@keyframes ticker{
+  0%{transform:translateX(100vw);}
+  100%{transform:translateX(-100%);}
+}
+.notif-msg{
+  font-size:12px; font-weight:500; color:rgba(255,255,255,0.85);
+  padding:0 40px; display:flex; align-items:center; gap:8px;
+}
+.notif-msg .notif-icon{font-size:13px;}
+.notif-sep{color:rgba(255,255,255,0.25); padding:0 8px;}
+
+/* ═══════════════════════════════════
+   CARDS & PANELS
+═══════════════════════════════════ */
+.stat-grid{display:grid; gap:12px; margin-bottom:16px;}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g2{grid-template-columns:repeat(2,1fr);}
+.stat-card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:16px 18px;
+  box-shadow:var(--card-shadow); transition:transform 0.2s, box-shadow 0.2s;
+  position:relative; overflow:hidden;
+}
+.stat-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--accent);
+}
+.stat-card:hover{transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.12);}
+.stat-icon-row{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+.stat-icon-box{
+  width:36px; height:36px; border-radius:10px;
+  background:var(--badge-bg); display:flex; align-items:center; justify-content:center;
+  font-size:17px;
+}
+.stat-chip{
+  font-size:10px; font-weight:700; border-radius:20px; padding:3px 8px;
+  background:var(--badge-bg); color:var(--badge-color);
+}
+.stat-chip.up::before{content:'↑ ';}
+.stat-chip.dn::before{content:'↓ ';}
+.stat-label{font-size:11px; font-weight:600; color:var(--text2); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.8px;}
+.stat-value{font-family:'Playfair Display',serif; font-size:28px; font-weight:700; color:var(--text); letter-spacing:-0.5px; line-height:1;}
+.stat-sub{font-size:11px; color:var(--text3); margin-top:5px;}
+
+.panel{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; box-shadow:var(--card-shadow);
+  overflow:hidden; margin-bottom:14px;
+}
+.panel-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  background:var(--surface2);
+}
+.panel-title{
+  font-family:'Playfair Display',serif; font-size:14px; font-weight:700;
+  color:var(--text); display:flex; align-items:center; gap:8px;
+}
+.panel-body{padding:18px;}
+.panel-actions{display:flex; align-items:center; gap:8px;}
+
+/* ═══════════════════════════════════
+   BUTTONS
+═══════════════════════════════════ */
+.btn{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:12px; font-weight:700;
+  transition:all 0.15s; white-space:nowrap; letter-spacing:0.2px;
+}
+.btn-accent{background:var(--accent); color:#fff;}
+.btn-accent:hover{background:var(--accentbright); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.btn-ghost{background:var(--badge-bg); color:var(--badge-color); border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg2);}
+.btn-sm{padding:5px 10px; font-size:11px; border-radius:7px;}
+.del-btn{background:none; border:none; cursor:pointer; color:var(--text3); font-size:12px; padding:3px 6px; border-radius:5px; transition:all 0.15s;}
+.del-btn:hover{background:rgba(239,68,68,0.1); color:#ef4444;}
+
+/* ═══════════════════════════════════
+   TABLES
+═══════════════════════════════════ */
+.data-table{width:100%; border-collapse:collapse;}
+.data-table th{
+  padding:9px 14px; text-align:left; font-size:10px; font-weight:800;
+  color:var(--text3); text-transform:uppercase; letter-spacing:1.2px;
+  border-bottom:1px solid var(--border); background:var(--bg2);
+}
+.data-table td{
+  padding:11px 14px; font-size:12.5px; border-bottom:1px solid var(--border);
+  vertical-align:middle; color:var(--text);
+}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tbody tr:hover td{background:var(--surface2);}
+
+/* ═══════════════════════════════════
+   BADGES
+═══════════════════════════════════ */
+.badge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:20px; font-size:10.5px; font-weight:700; letter-spacing:0.2px;
+  background:var(--badge-bg); color:var(--badge-color);
+}
+.badge-green{background:#dcfce7; color:#166534;}
+.badge-red{background:#fee2e2; color:#991b1b;}
+.badge-yellow{background:#fef9c3; color:#854d0e;}
+.badge-blue{background:#dbeafe; color:#1e40af;}
+.badge-purple{background:#ede9fe; color:#4c1d95;}
+.badge-orange{background:#ffedd5; color:#9a3412;}
+.badge-teal{background:#ccfbf1; color:#134e4a;}
+.badge-gray{background:#f3f4f6; color:#374151;}
+
+/* ═══════════════════════════════════
+   KANBAN
+═══════════════════════════════════ */
+.kanban{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+.kanban-3{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.k-col{background:var(--kanban-bg); border-radius:12px; overflow:hidden; border:1px solid var(--border);}
+.k-col-head{
+  padding:10px 13px; font-size:11px; font-weight:800; letter-spacing:0.5px;
+  text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;
+  color:var(--accent2); border-bottom:1px solid var(--border);
+}
+.k-cnt{background:var(--surface); border-radius:20px; padding:1px 7px; font-size:10px; color:var(--text2);}
+.k-body{padding:8px; display:flex; flex-direction:column; gap:6px; min-height:50px;}
+.k-card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:9px; padding:10px 12px; transition:box-shadow 0.15s;
+  border-left:3px solid var(--accent);
+}
+.k-card:hover{box-shadow:var(--card-shadow);}
+.k-card-title{font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text); line-height:1.4;}
+.k-card-foot{display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:var(--text3);}
+
+/* ═══════════════════════════════════
+   PROGRESS
+═══════════════════════════════════ */
+.prog-wrap{background:var(--bg2); border-radius:20px; height:6px; overflow:hidden;}
+.prog-fill{height:100%; border-radius:20px; background:var(--progress); transition:width 0.6s ease;}
+
+/* ═══════════════════════════════════
+   CHART CONTAINERS
+═══════════════════════════════════ */
+.chart-wrap{position:relative;}
+.chart-wrap canvas{max-width:100%;}
+
+/* ═══════════════════════════════════
+   MODALS
+═══════════════════════════════════ */
+.modal-bg{
+  display:none; position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.45); backdrop-filter:blur(5px);
+  align-items:center; justify-content:center;
+}
+.modal-bg.open{display:flex; animation:fadeIn 0.2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--surface); border:1px solid var(--border); border-radius:18px;
+  width:500px; max-width:95vw; max-height:88vh; overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,0.25);
+  animation:slideUp 0.25s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{
+  padding:18px 20px 14px; border-bottom:1px solid var(--border);
+  background:var(--header-bg);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-head h3{font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:#fff;}
+.modal-close{background:rgba(255,255,255,0.15); border:none; cursor:pointer; color:#fff; font-size:16px; padding:4px 8px; border-radius:6px; transition:background 0.15s;}
+.modal-close:hover{background:rgba(255,255,255,0.3);}
+.modal-body{padding:20px;}
+.modal-foot{padding:12px 20px 18px; display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--border);}
+
+.fg{margin-bottom:13px;}
+.fl{display:block; font-size:10.5px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;}
+.fi,.fs,.fta{
+  width:100%; background:var(--bg2); border:1.5px solid var(--border);
+  border-radius:9px; padding:9px 12px; color:var(--text);
+  font-family:'Outfit',sans-serif; font-size:13px; outline:none; transition:border-color 0.2s;
+}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--accent);}
+.fs option{background:var(--surface);}
+.fta{resize:vertical; min-height:65px;}
+.fr2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+/* ═══════════════════════════════════
+   GRID LAYOUTS
+═══════════════════════════════════ */
+.g-2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+.g-3-1{display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px;}
+.g-1-2{display:grid; grid-template-columns:1fr 2fr; gap:14px; margin-bottom:14px;}
+
+/* ═══════════════════════════════════
+   MISC
+═══════════════════════════════════ */
+.empty-msg{text-align:center; padding:28px 16px; color:var(--text3); font-size:12px;}
+.section-label{font-family:'Playfair Display',serif; font-size:13px; font-weight:700; color:var(--text); margin-bottom:10px; display:flex; align-items:center; gap:7px;}
+.avatar{
+  width:30px; height:30px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:11px; font-weight:800; flex-shrink:0;
+  color:#fff; border:2px solid var(--surface);
+}
+.metric-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);}
+.metric-row:last-child{border-bottom:none;}
+.metric-name{font-size:12px; font-weight:500; color:var(--text2);}
+.metric-val{font-size:13px; font-weight:800; color:var(--text);}
+.donut-row{display:flex; align-items:center; gap:18px;}
+.donut-legend{flex:1; display:flex; flex-direction:column; gap:7px;}
+.dl-item{display:flex; align-items:center; justify-content:space-between; font-size:11.5px;}
+.dl-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+.dl-label{display:flex; align-items:center; gap:6px; color:var(--text2);}
+.dl-val{font-weight:700; color:var(--text);}
+
+/* Executive special hero card */
+.hero-card{
+  background:var(--header-bg); border-radius:14px; padding:22px;
+  color:#fff; position:relative; overflow:hidden; margin-bottom:14px;
+}
+.hero-card::after{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,0.07);
+}
+.hero-card::before{display:none;}
+.hero-val{font-family:'Playfair Display',serif;font-size:38px;font-weight:800;letter-spacing:-1px;color:#fff;}
+.hero-label{font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.hero-sub{font-size:12px;color:rgba(255,255,255,0.65);margin-top:5px;}
+
+/* Swipe hint arrows */
+.swipe-arrows{
+  position:fixed; bottom:50px; right:14px; display:flex; flex-direction:column; gap:4px; z-index:50;
+}
+.swipe-arrow-btn{
+  width:28px; height:28px; border-radius:50%;
+  background:var(--pill-bg); color:rgba(255,255,255,0.7);
+  border:none; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2); transition:all 0.15s;
+}
+.swipe-arrow-btn:hover{background:var(--accent); color:#fff; transform:scale(1.1);}
+
+/* Responsive */
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:768px){
+  .g4{grid-template-columns:repeat(2,1fr);}
+  .kanban{grid-template-columns:repeat(2,1fr);}
+  .kanban-3{grid-template-columns:1fr 1fr;}
+  .g-2,.g-3-1,.g-1-2{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  .g4,.g3,.g2{grid-template-columns:repeat(2,1fr);}
+  .tab-item{min-width:58px; padding:6px 10px;}
+  .tab-label{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="dark-overlay" id="dark-overlay"></div>
+
+<div id="shell" class="theme-executive">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="topbar-brand">
+      <div class="brand-logo">RG</div>
+      <div>
+        <div class="brand-name">REBI Group</div>
+        <div class="brand-sub">COMMAND CENTER</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-search">
+        <span style="font-size:12px;color:rgba(255,255,255,0.5)">🔍</span>
+        <input placeholder="Search…" id="gsearch">
+      </div>
+      <div class="topbar-icon-btn" title="Notifications" id="notif-btn">
+        🔔<span class="notif-dot" id="notif-dot"></span>
+      </div>
+      <div class="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">
+        <span class="toggle-label" id="toggle-label">☀️ Light</span>
+        <div class="toggle-track"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="topbar-icon-btn" style="font-size:12px;font-weight:800;gap:2px;padding:0 10px;min-width:auto;width:auto;">
+        <span style="font-size:11px">👤</span> <span style="font-size:11px;color:rgba(255,255,255,0.9)">REBI</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ICON TAB BAR -->
+  <div id="tabbar">
+    <div class="tab-item active" data-idx="0" onclick="goTo(0)">
+      <span class="tab-icon">🏛️</span><span class="tab-label">Executive</span>
+    </div>
+    <div class="tab-item" data-idx="1" onclick="goTo(1)">
+      <span class="tab-icon">💰</span><span class="tab-label">Financial</span>
+    </div>
+    <div class="tab-item" data-idx="2" onclick="goTo(2)">
+      <span class="tab-icon">📈</span><span class="tab-label">Sales</span>
+    </div>
+    <div class="tab-item" data-idx="3" onclick="goTo(3)">
+      <span class="tab-icon">📣</span><span class="tab-label">Marketing</span>
+    </div>
+    <div class="tab-item" data-idx="4" onclick="goTo(4)">
+      <span class="tab-icon">⚙️</span><span class="tab-label">Operations</span>
+    </div>
+    <div class="tab-item" data-idx="5" onclick="goTo(5)">
+      <span class="tab-icon">👥</span><span class="tab-label">HR & Team</span>
+    </div>
+    <div class="tab-item" data-idx="6" onclick="goTo(6)">
+      <span class="tab-icon">📦</span><span class="tab-label">Inventory</span>
+    </div>
+    <div class="tab-item" data-idx="7" onclick="goTo(7)">
+      <span class="tab-icon">🎧</span><span class="tab-label">Support</span>
+      <span class="tab-badge" id="sup-badge" style="display:none">0</span>
+    </div>
+  </div>
+
+  <!-- VIEWPORT -->
+  <div id="viewport">
+    <div id="slider">
+
+      <!-- ══ PAGE 0: EXECUTIVE ══ -->
+      <div class="page theme-executive" id="pg-0" style="background:var(--bg)">
+        <div class="hero-card">
+          <div class="hero-label">Total Revenue (Month to Date)</div>
+          <div class="hero-val" id="ex-rev">$0.00</div>
+          <div class="hero-sub" id="ex-date-str"></div>
+          <div style="position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;gap:16px">
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#fff" id="ex-clients">0</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.8px">Clients</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#fff" id="ex-team">0</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.8px">Team</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#fff" id="ex-tickets">0</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.8px">Tickets</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g-2">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Revenue Trend</span></div>
+            <div class="panel-body"><div class="chart-wrap" style="height:150px"><canvas id="ch-ex-rev"></canvas></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">🏢 Dept Headcount</span></div>
+            <div class="panel-body" id="ex-dept-bars" style="font-size:12px"></div>
+          </div>
+        </div>
+
+        <div class="g-2">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">📢 Announcements</span>
+              <button class="btn btn-accent btn-sm" onclick="openModal('m-ann')">+ Post</button>
+            </div>
+            <div class="panel-body" id="ann-list" style="max-height:200px;overflow-y:auto"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">🎯 Milestones</span>
+              <button class="btn btn-ghost btn-sm" onclick="openModal('m-mil')">+ Goal</button>
+            </div>
+            <div class="panel-body" id="mil-list" style="max-height:200px;overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 1: FINANCIAL ══ -->
+      <div class="page theme-financial" id="pg-1" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card">
+            <div class="stat-icon-row"><div class="stat-icon-box">💵</div><span class="stat-chip up">12% YTD</span></div>
+            <div class="stat-label">Total Revenue</div><div class="stat-value" id="f-rev">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-row"><div class="stat-icon-box">📤</div><span class="stat-chip dn">+4%</span></div>
+            <div class="stat-label">Total Expenses</div><div class="stat-value" id="f-exp">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-row"><div class="stat-icon-box">📊</div><span class="stat-chip up">Profit</span></div>
+            <div class="stat-label">Net Profit</div><div class="stat-value" id="f-profit">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-row"><div class="stat-icon-box">⏳</div></div>
+            <div class="stat-label">Outstanding</div><div class="stat-value" id="f-pending">$0</div>
+          </div>
+        </div>
+        <div class="g-3-1">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📈 Revenue vs Expenses</span></div>
+            <div class="panel-body"><div class="chart-wrap" style="height:160px"><canvas id="ch-fin-bar"></canvas></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">💡 By Category</span></div>
+            <div class="panel-body">
+              <div class="chart-wrap" style="height:120px"><canvas id="ch-fin-donut"></canvas></div>
+              <div id="fin-legend" style="margin-top:10px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:12px">
+          <div class="panel-head">
+            <span class="panel-title">💰 Revenue Entries</span>
+            <button class="btn btn-accent btn-sm" onclick="openModal('m-rev')">+ Add Revenue</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>Date</th><th>Source</th><th>Category</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+            <tbody id="t-rev"></tbody></table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">📤 Expense Log</span>
+            <button class="btn btn-ghost btn-sm" onclick="openModal('m-exp')">+ Add Expense</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="t-exp"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 2: SALES ══ -->
+      <div class="page theme-sales" id="pg-2" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🎯</div></div><div class="stat-label">Total Leads</div><div class="stat-value" id="s-leads">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🤝</div></div><div class="stat-label">Negotiating</div><div class="stat-value" id="s-nego">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">✅</div><span class="stat-chip up">Won</span></div><div class="stat-label">Deals Closed</div><div class="stat-value" id="s-closed">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">💎</div></div><div class="stat-label">Pipeline Value</div><div class="stat-value" id="s-value">$0</div></div>
+        </div>
+        <div class="g-3-1">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">📋 Sales Pipeline</span>
+              <button class="btn btn-accent btn-sm" onclick="openModal('m-lead')">+ Add Lead</button>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table"><thead><tr><th>Name</th><th>Company</th><th>Service</th><th>Value</th><th>Stage</th><th>Contact</th><th></th></tr></thead>
+              <tbody id="t-leads"></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Stage Mix</span></div>
+            <div class="panel-body">
+              <div class="chart-wrap" style="height:150px"><canvas id="ch-sales-donut"></canvas></div>
+              <div id="sales-legend" style="margin-top:10px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">📈 Conversion Trend</span></div>
+          <div class="panel-body"><div class="chart-wrap" style="height:120px"><canvas id="ch-sales-line"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 3: MARKETING ══ -->
+      <div class="page theme-marketing" id="pg-3" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">👁️</div><span class="stat-chip up">34%</span></div><div class="stat-label">Total Reach</div><div class="stat-value" id="m-reach">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🎯</div><span class="stat-chip up">8.2%</span></div><div class="stat-label">Conversions</div><div class="stat-value" id="m-conv">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">📣</div></div><div class="stat-label">Active Campaigns</div><div class="stat-value" id="m-active">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">💸</div><span class="stat-chip up">ROI 3.2x</span></div><div class="stat-label">Marketing Spend</div><div class="stat-value" id="m-spend">$0</div></div>
+        </div>
+        <div class="g-3-1">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Reach by Channel</span></div>
+            <div class="panel-body"><div class="chart-wrap" style="height:170px"><canvas id="ch-mkt-bar"></canvas></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">🏆 Top Pages</span></div>
+            <div class="panel-body">
+              <div class="metric-row"><span class="metric-name">🏠 Home Page</span><span class="metric-val" style="color:var(--accent)">4.2K</span></div>
+              <div class="metric-row"><span class="metric-name">🛠️ Services</span><span class="metric-val" style="color:var(--accent)">3.3K</span></div>
+              <div class="metric-row"><span class="metric-name">ℹ️ About Us</span><span class="metric-val" style="color:var(--accent)">2.1K</span></div>
+              <div class="metric-row"><span class="metric-name">📞 Contact</span><span class="metric-val" style="color:var(--accent)">1.4K</span></div>
+              <div class="metric-row"><span class="metric-name">💼 Portfolio</span><span class="metric-val" style="color:var(--accent)">0.9K</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">📣 Campaigns</span>
+            <button class="btn btn-accent btn-sm" onclick="openModal('m-camp')">+ New Campaign</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>Campaign</th><th>Channel</th><th>Budget</th><th>Reach</th><th>Conv.</th><th>Status</th><th></th></tr></thead>
+            <tbody id="t-camps"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 4: OPERATIONS ══ -->
+      <div class="page theme-operations" id="pg-4" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">📋</div></div><div class="stat-label">Total Tasks</div><div class="stat-value" id="o-total">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">⚠️</div></div><div class="stat-label">Overdue</div><div class="stat-value" id="o-overdue">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🔄</div></div><div class="stat-label">In Progress</div><div class="stat-value" id="o-inprog">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">✅</div><span class="stat-chip up">Done</span></div><div class="stat-label">Completed</div><div class="stat-value" id="o-done">0</div></div>
+        </div>
+        <div class="g-2">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Task Status Chart</span></div>
+            <div class="panel-body"><div class="chart-wrap" style="height:150px"><canvas id="ch-ops-bar"></canvas></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">⚡ Operational Load</span></div>
+            <div class="panel-body">
+              <div class="metric-row"><span class="metric-name">Active Workflows</span><span class="metric-val" id="op-workflows">—</span></div>
+              <div class="metric-row"><span class="metric-name">Automations</span><span class="metric-val">3</span></div>
+              <div class="metric-row"><span class="metric-name">Failures</span><span class="metric-val" style="color:#ef4444">0</span></div>
+              <div class="metric-row"><span class="metric-name">Avg Task Time</span><span class="metric-val">2.4 days</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:12px">
+          <div class="panel-head">
+            <span class="panel-title">📌 Kanban Board</span>
+            <button class="btn btn-accent btn-sm" onclick="openModal('m-task')">+ New Task</button>
+          </div>
+          <div style="padding:12px">
+            <div class="kanban">
+              <div class="k-col"><div class="k-col-head">To Do <span class="k-cnt" id="kc-todo">0</span></div><div class="k-body" id="k-todo"></div></div>
+              <div class="k-col"><div class="k-col-head">In Progress <span class="k-cnt" id="kc-prog">0</span></div><div class="k-body" id="k-prog"></div></div>
+              <div class="k-col"><div class="k-col-head">Review <span class="k-cnt" id="kc-rev">0</span></div><div class="k-body" id="k-rev"></div></div>
+              <div class="k-col"><div class="k-col-head">Done <span class="k-cnt" id="kc-done">0</span></div><div class="k-body" id="k-done"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">📄 Task Log</span></div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>Task</th><th>Assignee</th><th>Status</th><th>Due</th><th>Priority</th><th></th></tr></thead>
+            <tbody id="t-tasks"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 5: HR ══ -->
+      <div class="page theme-hr" id="pg-5" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">👥</div></div><div class="stat-label">Total Staff</div><div class="stat-value" id="h-total">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">✅</div><span class="stat-chip up">Active</span></div><div class="stat-label">Active</div><div class="stat-value" id="h-active">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🌴</div></div><div class="stat-label">On Leave</div><div class="stat-value" id="h-leave">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">📋</div></div><div class="stat-label">Open Positions</div><div class="stat-value" id="h-open">0</div></div>
+        </div>
+        <div class="g-3-1">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">👥 Employee Directory</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input class="fi" style="width:140px;padding:5px 10px;font-size:11px" placeholder="🔍 Search…" oninput="filterTable('t-hr',this.value)">
+                <button class="btn btn-accent btn-sm" onclick="openModal('m-emp')">+ Add</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table"><thead><tr><th>Name</th><th>Role</th><th>Dept</th><th>Email</th><th>Salary</th><th>Status</th><th></th></tr></thead>
+              <tbody id="t-hr"></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">🏢 By Department</span></div>
+            <div class="panel-body">
+              <div class="chart-wrap" style="height:170px"><canvas id="ch-hr-donut"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">💰 Salary by Department</span></div>
+          <div class="panel-body" id="hr-sal-bars"></div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 6: INVENTORY ══ -->
+      <div class="page theme-inventory" id="pg-6" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">📦</div></div><div class="stat-label">Total SKUs</div><div class="stat-value" id="i-skus">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">⚠️</div></div><div class="stat-label">Low Stock</div><div class="stat-value" id="i-low">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">✅</div></div><div class="stat-label">In Stock</div><div class="stat-value" id="i-instock">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">💎</div></div><div class="stat-label">Inventory Value</div><div class="stat-value" id="i-value">$0</div></div>
+        </div>
+        <div class="g-3-1">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">📦 Product / Service Catalog</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input class="fi" style="width:130px;padding:5px 10px;font-size:11px" placeholder="🔍 Search…" oninput="filterTable('t-inv',this.value)">
+                <button class="btn btn-accent btn-sm" onclick="openModal('m-prod')">+ Add Item</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+              <tbody id="t-inv"></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Stock Status</span></div>
+            <div class="panel-body">
+              <div class="chart-wrap" style="height:140px"><canvas id="ch-inv-donut"></canvas></div>
+              <div class="divider" style="height:1px;background:var(--border);margin:12px 0"></div>
+              <div class="metric-row"><span class="metric-name">Total Value</span><span class="metric-val" id="i-val2">$0</span></div>
+              <div class="metric-row"><span class="metric-name">Avg Price</span><span class="metric-val" id="i-avg">$0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAGE 7: SUPPORT ══ -->
+      <div class="page theme-support" id="pg-7" style="background:var(--bg)">
+        <div class="stat-grid g4" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🎫</div></div><div class="stat-label">All Tickets</div><div class="stat-value" id="sp-total">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🆕</div></div><div class="stat-label">Open</div><div class="stat-value" id="sp-open">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">🔄</div></div><div class="stat-label">In Progress</div><div class="stat-value" id="sp-prog">0</div></div>
+          <div class="stat-card"><div class="stat-icon-row"><div class="stat-icon-box">✅</div><span class="stat-chip up">Resolved</span></div><div class="stat-label">Resolved</div><div class="stat-value" id="sp-resolved">0</div></div>
+        </div>
+        <div class="panel" style="margin-bottom:12px">
+          <div class="panel-head">
+            <span class="panel-title">🎧 Ticket Board</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fi" style="width:160px;padding:5px 10px;font-size:11px" placeholder="🔍 Search…" oninput="filterSupKanban(this.value)">
+              <button class="btn btn-accent btn-sm" onclick="openModal('m-tick')">+ New Ticket</button>
+            </div>
+          </div>
+          <div style="padding:12px">
+            <div class="kanban-3">
+              <div class="k-col"><div class="k-col-head">🆕 Open / New <span class="k-cnt" id="sk-open">0</span></div><div class="k-body" id="sk-col-open"></div></div>
+              <div class="k-col"><div class="k-col-head">🔄 In Progress <span class="k-cnt" id="sk-prog">0</span></div><div class="k-body" id="sk-col-prog"></div></div>
+              <div class="k-col"><div class="k-col-head">✅ Resolved <span class="k-cnt" id="sk-res">0</span></div><div class="k-body" id="sk-col-res"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">📋 All Tickets</span></div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>#ID</th><th>Client</th><th>Issue</th><th>Priority</th><th>Agent</th><th>Status</th><th></th></tr></thead>
+            <tbody id="t-sup"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /slider -->
+  </div><!-- /viewport -->
+
+  <!-- NOTIFICATION BAR -->
+  <div id="notifbar">
+    <div class="notif-prefix">📡 Live</div>
+    <div class="notif-track">
+      <div class="notif-inner" id="notif-inner"></div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- Swipe arrows -->
+<div class="swipe-arrows">
+  <button class="swipe-arrow-btn" onclick="goTo(currentPage-1)" title="Previous">‹</button>
+  <button class="swipe-arrow-btn" onclick="goTo(currentPage+1)" title="Next">›</button>
+</div>
+
+<!-- ════════════════════════ MODALS ════════════════════════ -->
+
+<!-- Revenue -->
+<div class="modal-bg" id="m-rev">
+  <div class="modal theme-financial">
+    <div class="modal-head"><h3>💰 Log Revenue</h3><button class="modal-close" onclick="closeModal('m-rev')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="r-date"></div>
+      <div class="fg"><label class="fl">Source / Client</label><input class="fi" id="r-src" placeholder="e.g. Client name or service"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Category</label><select class="fs" id="r-cat"><option>Service</option><option>Product</option><option>Consulting</option><option>Partnership</option><option>Other</option></select></div>
+        <div class="fg"><label class="fl">Amount ($)</label><input type="number" class="fi" id="r-amt" placeholder="0.00" min="0"></div>
+      </div>
+      <div class="fg"><label class="fl">Status</label><select class="fs" id="r-stat"><option>Paid</option><option>Pending</option><option>Overdue</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-rev')">Cancel</button><button class="btn btn-accent" onclick="addRevenue()">Save</button></div>
+  </div>
+</div>
+
+<!-- Expense -->
+<div class="modal-bg" id="m-exp">
+  <div class="modal theme-financial">
+    <div class="modal-head"><h3>📤 Log Expense</h3><button class="modal-close" onclick="closeModal('m-exp')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="e-date"></div>
+      <div class="fg"><label class="fl">Description</label><input class="fi" id="e-desc" placeholder="What was it for?"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Category</label><select class="fs" id="e-cat"><option>Salaries</option><option>Marketing</option><option>Operations</option><option>Equipment</option><option>Rent</option><option>Other</option></select></div>
+        <div class="fg"><label class="fl">Amount ($)</label><input type="number" class="fi" id="e-amt" placeholder="0.00" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-exp')">Cancel</button><button class="btn btn-accent" onclick="addExpense()">Save</button></div>
+  </div>
+</div>
+
+<!-- Lead -->
+<div class="modal-bg" id="m-lead">
+  <div class="modal theme-sales">
+    <div class="modal-head"><h3>📋 Add Lead / Client</h3><button class="modal-close" onclick="closeModal('m-lead')">✕</button></div>
+    <div class="modal-body">
+      <div class="fr2">
+        <div class="fg"><label class="fl">Name</label><input class="fi" id="l-name" placeholder="Contact name"></div>
+        <div class="fg"><label class="fl">Company</label><input class="fi" id="l-co" placeholder="Company"></div>
+      </div>
+      <div class="fg"><label class="fl">Service</label><input class="fi" id="l-svc" placeholder="Service interested in"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Value ($)</label><input type="number" class="fi" id="l-val" placeholder="0" min="0"></div>
+        <div class="fg"><label class="fl">Stage</label><select class="fs" id="l-stage"><option>New Lead</option><option>Contacted</option><option>Negotiation</option><option>Proposal Sent</option><option>Closed Won</option><option>Closed Lost</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Contact</label><input class="fi" id="l-contact" placeholder="email or phone"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-lead')">Cancel</button><button class="btn btn-accent" onclick="addLead()">Save</button></div>
+  </div>
+</div>
+
+<!-- Campaign -->
+<div class="modal-bg" id="m-camp">
+  <div class="modal theme-marketing">
+    <div class="modal-head"><h3>📣 New Campaign</h3><button class="modal-close" onclick="closeModal('m-camp')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Campaign Name</label><input class="fi" id="c-name" placeholder="e.g. Q2 Brand Launch"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Channel</label><select class="fs" id="c-ch"><option>Social Media</option><option>Email</option><option>SEO</option><option>Paid Ads</option><option>Events</option><option>PR</option></select></div>
+        <div class="fg"><label class="fl">Budget ($)</label><input type="number" class="fi" id="c-bgt" placeholder="0" min="0"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Expected Reach</label><input type="number" class="fi" id="c-reach" placeholder="0" min="0"></div>
+        <div class="fg"><label class="fl">Status</label><select class="fs" id="c-stat"><option>Planning</option><option>Active</option><option>Paused</option><option>Completed</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-camp')">Cancel</button><button class="btn btn-accent" onclick="addCampaign()">Launch</button></div>
+  </div>
+</div>
+
+<!-- Task -->
+<div class="modal-bg" id="m-task">
+  <div class="modal theme-operations">
+    <div class="modal-head"><h3>⚙️ New Task</h3><button class="modal-close" onclick="closeModal('m-task')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Task Title</label><input class="fi" id="tk-title" placeholder="What needs to be done?"></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="fta" id="tk-desc" placeholder="Details…"></textarea></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Assignee</label><input class="fi" id="tk-asgn" placeholder="Team member"></div>
+        <div class="fg"><label class="fl">Due Date</label><input type="date" class="fi" id="tk-due"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Priority</label><select class="fs" id="tk-pri"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
+        <div class="fg"><label class="fl">Status</label><select class="fs" id="tk-stat"><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-task')">Cancel</button><button class="btn btn-accent" onclick="addTask()">Create</button></div>
+  </div>
+</div>
+
+<!-- Employee -->
+<div class="modal-bg" id="m-emp">
+  <div class="modal theme-hr">
+    <div class="modal-head"><h3>👤 Add Employee</h3><button class="modal-close" onclick="closeModal('m-emp')">✕</button></div>
+    <div class="modal-body">
+      <div class="fr2">
+        <div class="fg"><label class="fl">Full Name</label><input class="fi" id="em-name" placeholder="Full name"></div>
+        <div class="fg"><label class="fl">Role</label><input class="fi" id="em-role" placeholder="e.g. Sales Manager"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Department</label><select class="fs" id="em-dept"><option>Executive</option><option>Finance</option><option>Sales</option><option>Marketing</option><option>Operations</option><option>HR</option><option>Support</option><option>IT</option></select></div>
+        <div class="fg"><label class="fl">Salary ($/mo)</label><input type="number" class="fi" id="em-sal" placeholder="0" min="0"></div>
+      </div>
+      <div class="fg"><label class="fl">Email</label><input type="email" class="fi" id="em-email" placeholder="name@rebigroup.com"></div>
+      <div class="fg"><label class="fl">Status</label><select class="fs" id="em-stat"><option>Active</option><option>On Leave</option><option>Probation</option><option>Resigned</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-emp')">Cancel</button><button class="btn btn-accent" onclick="addEmployee()">Add</button></div>
+  </div>
+</div>
+
+<!-- Product -->
+<div class="modal-bg" id="m-prod">
+  <div class="modal theme-inventory">
+    <div class="modal-head"><h3>📦 Add Product / Service</h3><button class="modal-close" onclick="closeModal('m-prod')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Item Name</label><input class="fi" id="p-name" placeholder="Product or service name"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Category</label><select class="fs" id="p-cat"><option>Product</option><option>Service</option><option>Digital</option><option>Subscription</option></select></div>
+        <div class="fg"><label class="fl">Price ($)</label><input type="number" class="fi" id="p-price" placeholder="0.00" min="0"></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Qty / Units</label><input type="number" class="fi" id="p-qty" placeholder="0" min="0"></div>
+        <div class="fg"><label class="fl">Status</label><select class="fs" id="p-stat"><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option><option>Discontinued</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-prod')">Cancel</button><button class="btn btn-accent" onclick="addProduct()">Add Item</button></div>
+  </div>
+</div>
+
+<!-- Ticket -->
+<div class="modal-bg" id="m-tick">
+  <div class="modal theme-support">
+    <div class="modal-head"><h3>🎧 New Support Ticket</h3><button class="modal-close" onclick="closeModal('m-tick')">✕</button></div>
+    <div class="modal-body">
+      <div class="fr2">
+        <div class="fg"><label class="fl">Client</label><input class="fi" id="tk2-client" placeholder="Client name"></div>
+        <div class="fg"><label class="fl">Agent</label><input class="fi" id="tk2-agent" placeholder="Agent name"></div>
+      </div>
+      <div class="fg"><label class="fl">Issue</label><input class="fi" id="tk2-issue" placeholder="Brief description"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Priority</label><select class="fs" id="tk2-pri"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
+        <div class="fg"><label class="fl">Status</label><select class="fs" id="tk2-stat"><option>Open</option><option>In Progress</option><option>Waiting</option><option>Resolved</option><option>Closed</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-tick')">Cancel</button><button class="btn btn-accent" onclick="addTicket()">Create</button></div>
+  </div>
+</div>
+
+<!-- Announcement -->
+<div class="modal-bg" id="m-ann">
+  <div class="modal theme-executive">
+    <div class="modal-head"><h3>📢 Post Announcement</h3><button class="modal-close" onclick="closeModal('m-ann')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Title</label><input class="fi" id="an-title" placeholder="Announcement title"></div>
+      <div class="fg"><label class="fl">Message</label><textarea class="fta" id="an-body" placeholder="Write your message…"></textarea></div>
+      <div class="fg"><label class="fl">Type</label><select class="fs" id="an-type"><option>Info</option><option>Success</option><option>Warning</option><option>Urgent</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-ann')">Cancel</button><button class="btn btn-accent" onclick="addAnnouncement()">Post</button></div>
+  </div>
+</div>
+
+<!-- Milestone -->
+<div class="modal-bg" id="m-mil">
+  <div class="modal theme-executive">
+    <div class="modal-head"><h3>🎯 Add Milestone</h3><button class="modal-close" onclick="closeModal('m-mil')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Goal Title</label><input class="fi" id="ml-title" placeholder="e.g. First 100 clients"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Current</label><input type="number" class="fi" id="ml-cur" placeholder="0" min="0"></div>
+        <div class="fg"><label class="fl">Target</label><input type="number" class="fi" id="ml-tgt" placeholder="100" min="1"></div>
+      </div>
+      <div class="fg"><label class="fl">Due Date</label><input type="date" class="fi" id="ml-due"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('m-mil')">Cancel</button><button class="btn btn-accent" onclick="addMilestone()">Add Goal</button></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   STATE
+═══════════════════════════════════ */
+const DB={revenues:[],expenses:[],leads:[],campaigns:[],tasks:[],employees:[],products:[],tickets:[],announcements:[],milestones:[]};
+let tickId=1001, isDark=false, currentPage=0, touchStartX=0, touchStartY=0;
+
+const THEMES=['theme-executive','theme-financial','theme-sales','theme-marketing','theme-operations','theme-hr','theme-inventory','theme-support'];
+const PAGE_NAMES=['Executive','Financial','Sales & CRM','Marketing','Operations','HR & Team','Inventory','Support'];
+const NOTIF_DEFAULTS=[
+  {icon:'🏛️',msg:'Welcome to REBI Group Command Center — all dashboards live'},
+  {icon:'📊',msg:'Financial dashboard updated — track your revenue and expenses'},
+  {icon:'🎯',msg:'Add your first lead in the Sales dashboard to start tracking deals'},
+  {icon:'👥',msg:'Build your team by adding employees in the HR & Team dashboard'},
+  {icon:'📣',msg:'Launch a campaign in Marketing to grow REBI Group\'s reach'},
+  {icon:'🎧',msg:'Support dashboard ready — log tickets and track resolution'},
+  {icon:'📦',msg:'Add your products and services to the Inventory dashboard'},
+  {icon:'⚙️',msg:'Operations board ready — create tasks and move them through Kanban'},
+];
+
+/* ═══════════════════════════════════
+   NAVIGATION & SWIPE
+═══════════════════════════════════ */
+const shell=document.getElementById('shell');
+const slider=document.getElementById('slider');
+
+function goTo(idx){
+  const n=Math.max(0,Math.min(7,idx));
+  currentPage=n;
+  slider.style.transform=`translateX(-${n*100}vw)`;
+  document.querySelectorAll('.tab-item').forEach((t,i)=>{
+    t.classList.toggle('active',i===n);
+  });
+  // Apply theme to shell
+  THEMES.forEach(t=>shell.classList.remove(t));
+  shell.classList.add(THEMES[n]);
+  refreshAll();
+}
+
+// Touch swipe
+const vp=document.getElementById('viewport');
+vp.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY;},{passive:true});
+vp.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
+    goTo(dx<0?currentPage+1:currentPage-1);
+  }
+},{passive:true});
+
+// Mouse drag swipe
+let mouseDown=false, mouseStartX=0;
+vp.addEventListener('mousedown',e=>{mouseDown=true; mouseStartX=e.clientX;});
+vp.addEventListener('mouseup',e=>{
+  if(mouseDown){
+    const dx=e.clientX-mouseStartX;
+    if(Math.abs(dx)>80) goTo(dx<0?currentPage+1:currentPage-1);
+    mouseDown=false;
+  }
+});
+vp.addEventListener('mouseleave',()=>{mouseDown=false;});
+
+/* ═══════════════════════════════════
+   DARK MODE
+═══════════════════════════════════ */
+function toggleDark(){
+  isDark=!isDark;
+  document.documentElement.setAttribute('data-mode',isDark?'dark':'light');
+  document.getElementById('toggle-label').textContent=isDark?'🌙 Dark':'☀️ Light';
+  document.getElementById('dark-overlay').style.display=isDark?'block':'none';
+  redrawCharts();
+}
+
+/* ═══════════════════════════════════
+   NOTIFICATIONS TICKER
+═══════════════════════════════════ */
+function buildTicker(){
+  const all=[...NOTIF_DEFAULTS];
+  if(DB.revenues.length) all.push({icon:'💰',msg:`Revenue entry added: ${DB.revenues[DB.revenues.length-1].source} — ${fmt(DB.revenues[DB.revenues.length-1].amount)}`});
+  if(DB.leads.length) all.push({icon:'📈',msg:`New lead: ${DB.leads[DB.leads.length-1].name} from ${DB.leads[DB.leads.length-1].company}`});
+  if(DB.tickets.length){const open=DB.tickets.filter(t=>t.status==='Open').length; if(open>0) all.push({icon:'🎧',msg:`${open} open support ticket${open>1?'s':''} awaiting attention`});}
+  if(DB.employees.length) all.push({icon:'👥',msg:`Team: ${DB.employees.length} member${DB.employees.length>1?'s':''} — ${DB.employees.filter(e=>e.status==='Active').length} active`});
+
+  const inner=document.getElementById('notif-inner');
+  inner.innerHTML=all.map((n,i)=>`
+    <span class="notif-msg">
+      <span class="notif-icon">${n.icon}</span>${n.msg}
+      ${i<all.length-1?'<span class="notif-sep">·</span>':''}
+    </span>`).join('');
+}
+
+/* ═══════════════════════════════════
+   MODALS
+═══════════════════════════════════ */
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  const d=document.querySelector(`#${id} input[type="date"]`);
+  if(d&&!d.value) d.value=today();
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+/* ═══════════════════════════════════
+   HELPERS
+═══════════════════════════════════ */
+const fmt=n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=n=>Number(n||0).toLocaleString();
+const today=()=>new Date().toISOString().split('T')[0];
+const initials=name=>name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+const AV_COLORS=['#4b5563','#9b2335','#92400e','#15803d','#1d4ed8','#b45309','#0d9488','#7c3aed'];
+
+function priClass(p){return {Critical:'badge-red',High:'badge-orange',Medium:'badge-yellow',Low:'badge-teal'}[p]||'badge-gray';}
+function stageClass(s){
+  if(s==='Closed Won')return 'badge-green';
+  if(s==='Closed Lost')return 'badge-red';
+  if(['Negotiation','Proposal Sent'].includes(s))return 'badge-yellow';
+  return 'badge-blue';
+}
+function statClass(s){
+  if(['Paid','Active','Completed','Resolved','Closed','In Stock'].includes(s))return 'badge-green';
+  if(['Overdue','Out of Stock','Discontinued','Critical'].includes(s))return 'badge-red';
+  if(['Pending','Planning','Low Stock','On Leave','Waiting'].includes(s))return 'badge-yellow';
+  if(['In Progress','Probation'].includes(s))return 'badge-orange';
+  return 'badge-blue';
+}
+function clearVals(ids){ids.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
+function filterTable(tid,q){document.querySelectorAll(`#${tid} tr`).forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none');}
+function filterSupKanban(q){document.querySelectorAll('.k-col .k-card').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q.toLowerCase())?'':'none');}
+function delRow(arr,i,fn){arr.splice(i,1);fn();buildTicker();}
+function emptyRow(c){return `<tr><td colspan="${c}" class="empty-msg">No entries yet. Click the button above to add one.</td></tr>`;}
+
+/* ═══════════════════════════════════
+   CHARTS
+═══════════════════════════════════ */
+const charts={};
+function mkChart(id,cfg){
+  if(charts[id])charts[id].destroy();
+  const el=document.getElementById(id);
+  if(!el)return;
+  charts[id]=new Chart(el,cfg);
+}
+function gridColor(){return isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function textColor(){return isDark?'#94a3b8':'#9ca3af';}
+
+function buildExRevChart(){
+  const labels=['Jan','Feb','Mar','Apr','May','Jun'];
+  const base=[12000,18000,15000,22000,19000,28000];
+  const data=labels.map((_,i)=>{
+    const sum=DB.revenues.filter(r=>new Date(r.date).getMonth()===i).reduce((s,r)=>s+r.amount,0);
+    return sum||base[i];
+  });
+  mkChart('ch-ex-rev',{type:'line',data:{labels,datasets:[{data,borderColor:'#fff',backgroundColor:'rgba(255,255,255,0.15)',fill:true,tension:0.4,pointBackgroundColor:'#fff',pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'rgba(255,255,255,0.6)',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.1)'},ticks:{color:'rgba(255,255,255,0.6)',font:{size:10},callback:v=>'$'+v.toLocaleString()}}}}});
+}
+
+function buildFinCharts(){
+  const labels=['Jan','Feb','Mar','Apr','May','Jun'];
+  const rv=labels.map((_,i)=>DB.revenues.filter(r=>new Date(r.date).getMonth()===i).reduce((s,r)=>s+r.amount,0)||[8000,12000,10000,15000,13000,20000][i]);
+  const ex=labels.map((_,i)=>DB.expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+e.amount,0)||[5000,7000,6000,9000,8000,12000][i]);
+  mkChart('ch-fin-bar',{type:'bar',data:{labels,datasets:[{label:'Revenue',data:rv,backgroundColor:'rgba(155,35,53,0.8)',borderRadius:5,borderSkipped:false},{label:'Expenses',data:ex,backgroundColor:'rgba(155,35,53,0.35)',borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:textColor(),font:{size:10}}}},
+      scales:{x:{grid:{color:gridColor()},ticks:{color:textColor(),font:{size:10}}},y:{grid:{color:gridColor()},ticks:{color:textColor(),font:{size:10}}}}}});
+  
+  const cats={};DB.revenues.forEach(r=>{cats[r.category]=(cats[r.category]||0)+r.amount;});
+  const cl=Object.keys(cats),cv=Object.values(cats);
+  const colors=['#9b2335','#b91c1c','#dc2626','#fca5a5','#fecaca'];
+  if(!cl.length){cl.push('No Data');cv.push(1);}
+  mkChart('ch-fin-donut',{type:'doughnut',data:{labels:cl,datasets:[{data:cv,backgroundColor:colors.slice(0,cl.length),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false}}}});
+  const leg=document.getElementById('fin-legend');
+  if(leg) leg.innerHTML=cl.map((c,i)=>`<div class="dl-item"><div class="dl-label"><div class="dl-dot" style="background:${colors[i]}"></div>${c}</div><div class="dl-val">${cv[i]>1?fmt(cv[i]):'—'}</div></div>`).join('');
+}
+
+function buildSalesCharts(){
+  const stages=['New Lead','Contacted','Negotiation','Proposal Sent','Closed Won','Closed Lost'];
+  const counts=stages.map(s=>DB.leads.filter(l=>l.stage===s).length);
+  const colors=['#92400e','#b45309','#d97706','#f59e0b','#fbbf24','#fde68a'];
+  const has=counts.some(v=>v>0);
+  mkChart('ch-sales-donut',{type:'doughnut',data:{labels:has?stages:['No Leads'],datasets:[{data:has?counts:[1],backgroundColor:has?colors:['#e5e7eb'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});
+  const leg=document.getElementById('sales-legend');
+  if(leg) leg.innerHTML=stages.map((s,i)=>`<div class="dl-item" style="margin-bottom:4px"><div class="dl-label" style="font-size:11px"><div class="dl-dot" style="background:${colors[i]}"></div>${s}</div><div class="dl-val" style="font-size:12px">${counts[i]}</div></div>`).join('');
+  mkChart('ch-sales-line',{type:'line',data:{labels:['Wk1','Wk2','Wk3','Wk4','Wk5','Wk6'],datasets:[{label:'Conversions',data:[2,5,3,8,6,DB.leads.filter(l=>l.stage==='Closed Won').length||10],borderColor:'#92400e',backgroundColor:'rgba(146,64,14,0.1)',fill:true,tension:0.4,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:textColor(),font:{size:10}}},y:{grid:{display:false},ticks:{color:textColor(),font:{size:10}}}}}});
+}
+
+function buildMktCharts(){
+  const channels=['Social','Email','SEO','Paid Ads','Events','PR'];
+  const reach=channels.map((ch,i)=>DB.campaigns.filter(c=>c.channel===ch.replace('Paid Ads','Paid Ads')).reduce((s,c)=>s+c.reach,0)||[5400,3200,2800,7100,1200,900][i]);
+  mkChart('ch-mkt-bar',{type:'bar',data:{labels:channels,datasets:[{data:reach,backgroundColor:['#14532d','#15803d','#16a34a','#22c55e','#4ade80','#86efac'],borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:textColor(),font:{size:10}}},y:{grid:{color:gridColor()},ticks:{color:textColor(),font:{size:10}}}}}});
+}
+
+function buildOpsCharts(){
+  const statuses=['To Do','In Progress','Review','Done'];
+  const counts=statuses.map(s=>DB.tasks.filter(t=>t.status===s).length);
+  const base=[4,6,2,8];
+  mkChart('ch-ops-bar',{type:'bar',data:{labels:statuses,datasets:[{data:counts.some(v=>v>0)?counts:base,backgroundColor:['#1e3a8a','#1d4ed8','#2563eb','#3b82f6'],borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:textColor(),font:{size:10}}},y:{grid:{color:gridColor()},ticks:{color:textColor(),font:{size:10}}}}}});
+}
+
+function buildHRCharts(){
+  const depts={};DB.employees.forEach(e=>{depts[e.department]=(depts[e.department]||0)+1;});
+  const labels=Object.keys(depts),data=Object.values(depts);
+  const colors=['#d97706','#f59e0b','#fbbf24','#fde68a','#b45309','#92400e','#78350f','#fef3c7'];
+  const has=labels.length>0;
+  mkChart('ch-hr-donut',{type:'doughnut',data:{labels:has?labels:['No Staff'],datasets:[{data:has?data:[1],backgroundColor:has?colors:['#e5e7eb'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{labels:{color:textColor(),font:{size:10}}}}}});
+  
+  const salByDept={};DB.employees.forEach(e=>{salByDept[e.department]=(salByDept[e.department]||0)+e.salary;});
+  const salEl=document.getElementById('hr-sal-bars');
+  if(salEl){
+    if(!Object.keys(salByDept).length){salEl.innerHTML='<div class="empty-msg">Add employees to see salary breakdown</div>';return;}
+    const max=Math.max(...Object.values(salByDept));
+    salEl.innerHTML=Object.entries(salByDept).map(([d,t],i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="width:80px;font-size:11px;color:var(--text2);text-align:right;flex-shrink:0">${d}</span>
+        <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:${(t/max)*100}%;background:${colors[i%8]}"></div></div>
+        <span style="font-size:11px;font-weight:700;width:75px;color:var(--text)">${fmt(t)}</span>
+      </div>`).join('');
+  }
+}
+
+function buildInvCharts(){
+  const statuses=['In Stock','Low Stock','Out of Stock','Discontinued'];
+  const counts=statuses.map(s=>DB.products.filter(p=>p.status===s).length);
+  const colors=['#0d9488','#14b8a6','#2dd4bf','#99f6e4'];
+  const has=counts.some(v=>v>0);
+  mkChart('ch-inv-donut',{type:'doughnut',data:{labels:has?statuses:['No Items'],datasets:[{data:has?counts:[1],backgroundColor:has?colors:['#e5e7eb'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{labels:{color:textColor(),font:{size:10}}}}}});
+}
+
+function redrawCharts(){
+  buildExRevChart();buildFinCharts();buildSalesCharts();
+  buildMktCharts();buildOpsCharts();buildHRCharts();buildInvCharts();
+}
+
+/* ═══════════════════════════════════
+   ADD FUNCTIONS
+═══════════════════════════════════ */
+function addRevenue(){
+  const s=document.getElementById('r-src').value.trim();
+  if(!s)return alert('Enter a source.');
+  DB.revenues.push({date:document.getElementById('r-date').value||today(),source:s,category:document.getElementById('r-cat').value,amount:parseFloat(document.getElementById('r-amt').value)||0,status:document.getElementById('r-stat').value});
+  closeModal('m-rev');clearVals(['r-src','r-amt']);refreshAll();
+}
+function addExpense(){
+  const d=document.getElementById('e-desc').value.trim();
+  if(!d)return alert('Enter a description.');
+  DB.expenses.push({date:document.getElementById('e-date').value||today(),description:d,category:document.getElementById('e-cat').value,amount:parseFloat(document.getElementById('e-amt').value)||0});
+  closeModal('m-exp');clearVals(['e-desc','e-amt']);refreshAll();
+}
+function addLead(){
+  const n=document.getElementById('l-name').value.trim();
+  if(!n)return alert('Enter a name.');
+  DB.leads.push({name:n,company:document.getElementById('l-co').value,service:document.getElementById('l-svc').value,value:parseFloat(document.getElementById('l-val').value)||0,stage:document.getElementById('l-stage').value,contact:document.getElementById('l-contact').value});
+  closeModal('m-lead');clearVals(['l-name','l-co','l-svc','l-val','l-contact']);refreshAll();
+}
+function addCampaign(){
+  const n=document.getElementById('c-name').value.trim();
+  if(!n)return alert('Enter a campaign name.');
+  DB.campaigns.push({name:n,channel:document.getElementById('c-ch').value,budget:parseFloat(document.getElementById('c-bgt').value)||0,reach:parseInt(document.getElementById('c-reach').value)||0,conversions:0,status:document.getElementById('c-stat').value});
+  closeModal('m-camp');clearVals(['c-name','c-bgt','c-reach']);refreshAll();
+}
+function addTask(){
+  const t=document.getElementById('tk-title').value.trim();
+  if(!t)return alert('Enter a task title.');
+  DB.tasks.push({title:t,description:document.getElementById('tk-desc').value,assignee:document.getElementById('tk-asgn').value,due:document.getElementById('tk-due').value,priority:document.getElementById('tk-pri').value,status:document.getElementById('tk-stat').value});
+  closeModal('m-task');clearVals(['tk-title','tk-desc','tk-asgn','tk-due']);refreshAll();
+}
+function addEmployee(){
+  const n=document.getElementById('em-name').value.trim();
+  if(!n)return alert('Enter a name.');
+  DB.employees.push({name:n,role:document.getElementById('em-role').value,department:document.getElementById('em-dept').value,email:document.getElementById('em-email').value,salary:parseFloat(document.getElementById('em-sal').value)||0,status:document.getElementById('em-stat').value});
+  closeModal('m-emp');clearVals(['em-name','em-role','em-email','em-sal']);refreshAll();
+}
+function addProduct(){
+  const n=document.getElementById('p-name').value.trim();
+  if(!n)return alert('Enter a product name.');
+  DB.products.push({name:n,category:document.getElementById('p-cat').value,price:parseFloat(document.getElementById('p-price').value)||0,qty:parseInt(document.getElementById('p-qty').value)||0,status:document.getElementById('p-stat').value});
+  closeModal('m-prod');clearVals(['p-name','p-price','p-qty']);refreshAll();
+}
+function addTicket(){
+  const c=document.getElementById('tk2-client').value.trim();
+  if(!c)return alert('Enter client name.');
+  DB.tickets.push({id:'#'+tickId++,client:c,issue:document.getElementById('tk2-issue').value,priority:document.getElementById('tk2-pri').value,agent:document.getElementById('tk2-agent').value,status:document.getElementById('tk2-stat').value});
+  closeModal('m-tick');clearVals(['tk2-client','tk2-issue','tk2-agent']);refreshAll();
+}
+function addAnnouncement(){
+  const t=document.getElementById('an-title').value.trim();
+  if(!t)return alert('Enter a title.');
+  const tc={'Info':'#4b5563','Success':'#15803d','Warning':'#b45309','Urgent':'#9b2335'};
+  DB.announcements.unshift({title:t,body:document.getElementById('an-body').value,type:document.getElementById('an-type').value,color:tc[document.getElementById('an-type').value]||'#4b5563',date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  closeModal('m-ann');clearVals(['an-title','an-body']);refreshAll();
+}
+function addMilestone(){
+  const t=document.getElementById('ml-title').value.trim();
+  if(!t)return alert('Enter a goal title.');
+  DB.milestones.push({title:t,current:parseInt(document.getElementById('ml-cur').value)||0,target:parseInt(document.getElementById('ml-tgt').value)||100,due:document.getElementById('ml-due').value});
+  closeModal('m-mil');clearVals(['ml-title','ml-cur','ml-tgt','ml-due']);refreshAll();
+}
+
+/* ═══════════════════════════════════
+   REFRESH FUNCTIONS
+═══════════════════════════════════ */
+function refreshAll(){
+  rExecutive();rFinancial();rSales();rMarketing();rOperations();rHR();rInventory();rSupport();
+  buildTicker();redrawCharts();
+}
+
+function rExecutive(){
+  const rev=DB.revenues.reduce((s,r)=>s+r.amount,0);
+  const clients=DB.leads.filter(l=>l.stage==='Closed Won').length;
+  const openT=DB.tickets.filter(t=>['Open','In Progress'].includes(t.status)).length;
+  document.getElementById('ex-rev').textContent=fmt(rev);
+  document.getElementById('ex-clients').textContent=clients;
+  document.getElementById('ex-team').textContent=DB.employees.length;
+  document.getElementById('ex-tickets').textContent=openT;
+  const sb=document.getElementById('sup-badge');
+  if(openT>0){sb.textContent=openT;sb.style.display='block';}else{sb.style.display='none';}
+
+  // Dept bars
+  const deptEl=document.getElementById('ex-dept-bars');
+  const depts={};DB.employees.forEach(e=>{depts[e.department]=(depts[e.department]||0)+1;});
+  if(!Object.keys(depts).length){deptEl.innerHTML='<div class="empty-msg">Add employees to see department breakdown</div>';return;}
+  const max=Math.max(...Object.values(depts));
+  const colors=['#4b5563','#6b7280','#9ca3af','#d1d5db','#374151','#1f2937','#111827','#e5e7eb'];
+  deptEl.innerHTML=Object.entries(depts).map(([d,n],i)=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+      <span style="width:75px;font-size:10.5px;color:var(--text2);text-align:right;flex-shrink:0">${d}</span>
+      <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:${(n/max)*100}%;background:${colors[i%8]}"></div></div>
+      <span style="font-size:11px;font-weight:800;width:20px;color:${colors[i%8]}">${n}</span>
+    </div>`).join('');
+
+  // Announcements
+  const annEl=document.getElementById('ann-list');
+  annEl.innerHTML=!DB.announcements.length?'<div class="empty-msg">📭 No announcements yet</div>':
+    DB.announcements.map((a,i)=>`
+      <div style="border-left:3px solid ${a.color};background:var(--surface2);border-radius:8px;padding:9px 12px;margin-bottom:7px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <span style="font-size:12px;font-weight:700">${a.title}</span>
+          <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;margin-left:8px">
+            <span style="font-size:10px;color:var(--text3)">${a.date}</span>
+            <button class="del-btn" onclick="delRow(DB.announcements,${i},rExecutive)">✕</button>
+          </div>
+        </div>
+        ${a.body?`<p style="font-size:11px;color:var(--text2);margin-top:3px">${a.body}</p>`:''}
+      </div>`).join('');
+
+  // Milestones
+  const milEl=document.getElementById('mil-list');
+  const mc=['#4b5563','#6b7280','#9ca3af','#374151'];
+  milEl.innerHTML=!DB.milestones.length?'<div class="empty-msg">🚀 No milestones yet. Set your first goal!</div>':
+    DB.milestones.map((m,i)=>{
+      const pct=Math.min(100,Math.round((m.current/m.target)*100));
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:700">🎯 ${m.title}</span>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:11px;color:var(--text2)">${m.current}/${m.target}</span>
+            <span style="font-size:12px;font-weight:800;color:${mc[i%4]}">${pct}%</span>
+            <button class="del-btn" onclick="delRow(DB.milestones,${i},rExecutive)">✕</button>
+          </div>
+        </div>
+        <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;background:${mc[i%4]}"></div></div>
+        ${m.due?`<div style="font-size:10px;color:var(--text3);margin-top:3px">Due: ${m.due}</div>`:''}
+      </div>`;
+    }).join('');
+}
+
+function rFinancial(){
+  const rev=DB.revenues.reduce((s,r)=>s+r.amount,0);
+  const exp=DB.expenses.reduce((s,e)=>s+e.amount,0);
+  const pend=DB.revenues.filter(r=>r.status==='Pending').reduce((s,r)=>s+r.amount,0);
+  document.getElementById('f-rev').textContent=fmt(rev);
+  document.getElementById('f-exp').textContent=fmt(exp);
+  document.getElementById('f-profit').textContent=fmt(rev-exp);
+  document.getElementById('f-pending').textContent=fmt(pend);
+  document.getElementById('ex-rev').textContent=fmt(rev);
+  const rt=document.getElementById('t-rev');
+  rt.innerHTML=!DB.revenues.length?emptyRow(6):DB.revenues.map((r,i)=>`<tr>
+    <td style="font-size:11px;color:var(--text2)">${r.date}</td>
+    <td style="font-weight:600">${r.source}</td>
+    <td><span class="badge badge-purple">${r.category}</span></td>
+    <td style="font-weight:700;color:var(--accent)">${fmt(r.amount)}</td>
+    <td><span class="badge ${statClass(r.status)}">${r.status}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.revenues,${i},rFinancial)">🗑</button></td>
+  </tr>`).join('');
+  const et=document.getElementById('t-exp');
+  et.innerHTML=!DB.expenses.length?emptyRow(5):DB.expenses.map((e,i)=>`<tr>
+    <td style="font-size:11px;color:var(--text2)">${e.date}</td>
+    <td style="font-weight:600">${e.description}</td>
+    <td><span class="badge badge-orange">${e.category}</span></td>
+    <td style="font-weight:700;color:var(--accent2)">${fmt(e.amount)}</td>
+    <td><button class="del-btn" onclick="delRow(DB.expenses,${i},rFinancial)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rSales(){
+  const closed=DB.leads.filter(l=>l.stage==='Closed Won').length;
+  const nego=DB.leads.filter(l=>['Negotiation','Proposal Sent'].includes(l.stage)).length;
+  const val=DB.leads.filter(l=>l.stage!=='Closed Lost').reduce((s,l)=>s+l.value,0);
+  document.getElementById('s-leads').textContent=DB.leads.length;
+  document.getElementById('s-nego').textContent=nego;
+  document.getElementById('s-closed').textContent=closed;
+  document.getElementById('s-value').textContent=fmt(val);
+  document.getElementById('ex-clients').textContent=closed;
+  const tb=document.getElementById('t-leads');
+  tb.innerHTML=!DB.leads.length?emptyRow(7):DB.leads.map((l,i)=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:${AV_COLORS[i%8]};font-size:10px">${initials(l.name)}</div><span style="font-weight:600">${l.name}</span></div></td>
+    <td style="color:var(--text2)">${l.company}</td>
+    <td>${l.service}</td>
+    <td style="font-weight:700">${fmt(l.value)}</td>
+    <td><span class="badge ${stageClass(l.stage)}">${l.stage}</span></td>
+    <td style="font-size:11px;color:var(--text3)">${l.contact}</td>
+    <td><button class="del-btn" onclick="delRow(DB.leads,${i},rSales)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rMarketing(){
+  const act=DB.campaigns.filter(c=>c.status==='Active').length;
+  const reach=DB.campaigns.reduce((s,c)=>s+c.reach,0);
+  const conv=DB.campaigns.reduce((s,c)=>s+c.conversions,0);
+  const spend=DB.campaigns.reduce((s,c)=>s+c.budget,0);
+  document.getElementById('m-reach').textContent=fmtN(reach);
+  document.getElementById('m-conv').textContent=fmtN(conv);
+  document.getElementById('m-active').textContent=act;
+  document.getElementById('m-spend').textContent=fmt(spend);
+  const tb=document.getElementById('t-camps');
+  tb.innerHTML=!DB.campaigns.length?emptyRow(7):DB.campaigns.map((c,i)=>`<tr>
+    <td style="font-weight:600">${c.name}</td>
+    <td><span class="badge badge-blue">${c.channel}</span></td>
+    <td>${fmt(c.budget)}</td><td>${fmtN(c.reach)}</td><td>${c.conversions}</td>
+    <td><span class="badge ${statClass(c.status)}">${c.status}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.campaigns,${i},rMarketing)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rOperations(){
+  const done=DB.tasks.filter(t=>t.status==='Done').length;
+  const inprog=DB.tasks.filter(t=>t.status==='In Progress').length;
+  const overdue=DB.tasks.filter(t=>t.due&&t.due<today()&&t.status!=='Done').length;
+  document.getElementById('o-total').textContent=DB.tasks.length;
+  document.getElementById('o-done').textContent=done;
+  document.getElementById('o-inprog').textContent=inprog;
+  document.getElementById('o-overdue').textContent=overdue;
+  document.getElementById('op-workflows').textContent=DB.tasks.filter(t=>t.status==='In Progress').length;
+
+  const cols={'To Do':['k-todo','kc-todo'],'In Progress':['k-prog','kc-prog'],'Review':['k-rev','kc-rev'],'Done':['k-done','kc-done']};
+  const cnts={'To Do':0,'In Progress':0,'Review':0,'Done':0};
+  Object.values(cols).forEach(([b])=>document.getElementById(b).innerHTML='');
+  DB.tasks.forEach((t,i)=>{
+    const s=cols[t.status]?t.status:'To Do';
+    cnts[s]++;
+    const [bid]=cols[s];
+    const card=document.createElement('div');
+    card.className='k-card';
+    const pc={Low:'#1d4ed8',Medium:'#2563eb',High:'#1e3a8a',Critical:'#1e40af'};
+    card.innerHTML=`<div class="k-card-title">${t.title}</div>
+      <div class="k-card-foot">
+        <span style="font-size:10.5px;color:var(--text2)">${t.assignee||'Unassigned'}</span>
+        <span style="font-size:10px;color:var(--text3)">${t.due||'—'}</span>
+      </div>
+      <button class="del-btn" style="margin-top:6px;font-size:11px" onclick="delRow(DB.tasks,${i},rOperations)">🗑 Remove</button>`;
+    document.getElementById(bid).appendChild(card);
+  });
+  Object.entries(cnts).forEach(([s,n])=>{const[,cid]=cols[s];document.getElementById(cid).textContent=n;});
+  const tb=document.getElementById('t-tasks');
+  tb.innerHTML=!DB.tasks.length?emptyRow(6):DB.tasks.map((t,i)=>`<tr>
+    <td style="font-weight:600">${t.title}</td>
+    <td>${t.assignee||'—'}</td>
+    <td><span class="badge ${statClass(t.status)}">${t.status}</span></td>
+    <td style="font-size:11px;color:var(--text2)">${t.due||'—'}</td>
+    <td><span class="badge ${priClass(t.priority)}">${t.priority}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.tasks,${i},rOperations)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rHR(){
+  const act=DB.employees.filter(e=>e.status==='Active').length;
+  const leave=DB.employees.filter(e=>e.status==='On Leave').length;
+  document.getElementById('h-total').textContent=DB.employees.length;
+  document.getElementById('h-active').textContent=act;
+  document.getElementById('h-leave').textContent=leave;
+  document.getElementById('h-open').textContent=Math.max(0,5-DB.employees.length);
+  document.getElementById('ex-team').textContent=DB.employees.length;
+  const tb=document.getElementById('t-hr');
+  tb.innerHTML=!DB.employees.length?emptyRow(7):DB.employees.map((e,i)=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="background:${AV_COLORS[i%8]};font-size:10px">${initials(e.name)}</div><span style="font-weight:600">${e.name}</span></div></td>
+    <td style="color:var(--text2)">${e.role}</td>
+    <td><span class="badge badge-purple">${e.department}</span></td>
+    <td style="font-size:11px;color:var(--text3)">${e.email}</td>
+    <td style="font-weight:700">${fmt(e.salary)}/mo</td>
+    <td><span class="badge ${statClass(e.status)}">${e.status}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.employees,${i},rHR)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rInventory(){
+  const low=DB.products.filter(p=>p.status==='Low Stock').length;
+  const inS=DB.products.filter(p=>p.status==='In Stock').length;
+  const val=DB.products.reduce((s,p)=>s+p.price*p.qty,0);
+  const avg=DB.products.length?DB.products.reduce((s,p)=>s+p.price,0)/DB.products.length:0;
+  document.getElementById('i-skus').textContent=DB.products.length;
+  document.getElementById('i-low').textContent=low;
+  document.getElementById('i-instock').textContent=inS;
+  document.getElementById('i-value').textContent=fmt(val);
+  const v2=document.getElementById('i-val2');if(v2)v2.textContent=fmt(val);
+  const av=document.getElementById('i-avg');if(av)av.textContent=fmt(avg);
+  const tb=document.getElementById('t-inv');
+  tb.innerHTML=!DB.products.length?emptyRow(6):DB.products.map((p,i)=>`<tr>
+    <td style="font-weight:600">${p.name}</td>
+    <td><span class="badge badge-teal">${p.category}</span></td>
+    <td style="font-weight:700">${fmt(p.price)}</td>
+    <td>${p.qty}</td>
+    <td><span class="badge ${statClass(p.status)}">${p.status}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.products,${i},rInventory)">🗑</button></td>
+  </tr>`).join('');
+}
+
+function rSupport(){
+  const open=DB.tickets.filter(t=>t.status==='Open').length;
+  const inprog=DB.tickets.filter(t=>['In Progress','Waiting'].includes(t.status)).length;
+  const resolved=DB.tickets.filter(t=>['Resolved','Closed'].includes(t.status)).length;
+  document.getElementById('sp-total').textContent=DB.tickets.length;
+  document.getElementById('sp-open').textContent=open;
+  document.getElementById('sp-prog').textContent=inprog;
+  document.getElementById('sp-resolved').textContent=resolved;
+  const sb=document.getElementById('sup-badge');
+  const openAll=open+inprog;
+  if(openAll>0){sb.textContent=openAll;sb.style.display='block';}else{sb.style.display='none';}
+
+  ['sk-col-open','sk-col-prog','sk-col-res'].forEach(id=>document.getElementById(id).innerHTML='');
+  const cnts={open:0,prog:0,res:0};
+  DB.tickets.forEach((t,i)=>{
+    let bid,cntKey;
+    if(t.status==='Open'){bid='sk-col-open';cntKey='open';}
+    else if(['In Progress','Waiting'].includes(t.status)){bid='sk-col-prog';cntKey='prog';}
+    else{bid='sk-col-res';cntKey='res';}
+    cnts[cntKey]++;
+    const card=document.createElement('div');
+    card.className='k-card';
+    card.innerHTML=`<div class="k-card-title">${t.issue||'(no subject)'}</div>
+      <div class="k-card-foot">
+        <span class="badge ${priClass(t.priority)}" style="font-size:9.5px">${t.priority}</span>
+        <span style="font-size:10px;color:var(--text3)">${t.client}</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Agent: ${t.agent||'—'}</div>
+      <button class="del-btn" style="margin-top:5px;font-size:11px" onclick="delRow(DB.tickets,${i},rSupport)">🗑 Remove</button>`;
+    document.getElementById(bid).appendChild(card);
+  });
+  document.getElementById('sk-open').textContent=cnts.open;
+  document.getElementById('sk-prog').textContent=cnts.prog;
+  document.getElementById('sk-res').textContent=cnts.res;
+  const tb=document.getElementById('t-sup');
+  tb.innerHTML=!DB.tickets.length?emptyRow(7):DB.tickets.map((t,i)=>`<tr>
+    <td style="font-family:monospace;font-size:11px;color:var(--text3)">${t.id}</td>
+    <td style="font-weight:600">${t.client}</td>
+    <td>${t.issue}</td>
+    <td><span class="badge ${priClass(t.priority)}">${t.priority}</span></td>
+    <td style="color:var(--text2)">${t.agent||'—'}</td>
+    <td><span class="badge ${statClass(t.status)}">${t.status}</span></td>
+    <td><button class="del-btn" onclick="delRow(DB.tickets,${i},rSupport)">🗑</button></td>
+  </tr>`).join('');
+}
+
+/* ═══════════════════════════════════
+   INIT
+═══════════════════════════════════ */
+// Set date in executive hero
+const now=new Date();
+const dateStr=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const ds=document.getElementById('ex-date-str');
+if(ds)ds.textContent=dateStr;
+
+buildTicker();
+refreshAll();
+
+// Set initial slider position
+slider.style.transition='none';
+slider.style.transform='translateX(0)';
+setTimeout(()=>slider.style.transition='transform 0.45s cubic-bezier(0.4,0,0.2,1)',100);
+</script>
+</body>
+</html>

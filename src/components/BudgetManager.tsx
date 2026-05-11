@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Target, AlertCircle, CheckCircle2 } from 'lucide-react';
+import CustomDropdown from './CustomDropdown';
 
 interface Budget {
   category: string;
@@ -20,6 +21,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
   const categories = [
     'Food', 'Transport', 'Rent', 'Utilities', 'Entertainment', 'Shopping', 'Health', 'Education', 'Business', 'Other'
   ];
+  const categoryOptions = categories.map(c => ({ value: c, label: c }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +32,9 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
 
   return (
     <div className="space-y-6">
-      <div className="glass p-8 rounded-3xl border border-white/5 bg-white/[0.02]">
+      <div className="glass p-8 rounded-3xl border border-white/5 light-theme:border-black/5 bg-white/[0.02] light-theme:bg-black/[0.01]">
         <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-bold flex items-center gap-3 text-white">
+            <h2 className="text-xl font-bold flex items-center gap-3 text-white light-theme:text-text-light">
                 <Target className="w-6 h-6 text-primary" />
                 Budget Planner
             </h2>
@@ -42,21 +44,20 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 mb-10">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm appearance-none transition-all cursor-pointer"
-          >
-            {categories.map(c => <option key={c} value={c} className="bg-card-dark">{c}</option>)}
-          </select>
+          <CustomDropdown 
+            options={categoryOptions} 
+            value={selectedCategory} 
+            onChange={setSelectedCategory}
+            className="flex-1"
+          />
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 font-bold text-xs">{currency}</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 light-theme:text-stone-600 font-bold text-xs">{currency}</span>
             <input
               type="number"
               placeholder="Monthly Limit"
               value={limit}
               onChange={(e) => setLimit(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-stone-600 text-sm transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-white/5 light-theme:bg-black/5 border border-white/10 light-theme:border-black/10 rounded-xl text-white light-theme:text-text-light outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-stone-600 text-sm transition-all"
             />
           </div>
           <button
@@ -70,7 +71,7 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {budgets.length === 0 ? (
-            <div className="col-span-2 text-center py-10 text-stone-600 italic border-2 border-dashed border-white/5 rounded-2xl">No budgets set yet. Plan your spending!</div>
+            <div className="col-span-2 text-center py-10 text-stone-600 italic border-2 border-dashed border-white/5 light-theme:border-black/5 rounded-2xl">No budgets set yet. Plan your spending!</div>
           ) : (
             budgets.map((budget) => {
               const spent = spendingByCategory[budget.category] || 0;
@@ -78,16 +79,16 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
               const isOver = spent > budget.limit_amount;
 
               return (
-                <div key={budget.category} className="space-y-3 p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all group">
+                <div key={budget.category} className="space-y-3 p-5 rounded-2xl bg-white/[0.03] light-theme:bg-black/[0.02] border border-white/5 light-theme:border-black/5 hover:border-white/10 transition-all group">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="text-white font-bold text-sm mb-1">{budget.category}</h4>
+                      <h4 className="text-white light-theme:text-text-light font-bold text-sm mb-1">{budget.category}</h4>
                       <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
                         <span className={isOver ? 'text-red-500' : 'text-emerald-500'}>
                           {currency}{spent.toLocaleString()}
                         </span>
                         <span className="text-stone-700">/</span>
-                        <span className="text-stone-400">
+                        <span className="text-stone-400 light-theme:text-stone-600">
                           {currency}{budget.limit_amount.toLocaleString()}
                         </span>
                       </div>
@@ -104,14 +105,14 @@ export default function BudgetManager({ budgets, spendingByCategory, onSave, cur
                   </div>
                   
                   <div className="space-y-1.5">
-                      <div className="h-2.5 bg-white/5 rounded-full overflow-hidden p-0.5">
+                      <div className="h-2.5 bg-white/5 light-theme:bg-black/5 rounded-full overflow-hidden p-0.5">
                         <div
                           className={`h-full transition-all duration-1000 rounded-full ${isOver ? 'bg-red-500 shadow-sm shadow-red-500/20' : 'bg-primary shadow-sm shadow-primary/20'}`}
                           style={{ width: `${percent}%` }}
                         ></div>
                       </div>
                       <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
-                        <span className={isOver ? 'text-red-500/80' : 'text-stone-600'}>
+                        <span className={isOver ? 'text-red-500/80' : 'text-stone-600 light-theme:text-stone-500'}>
                           {isOver ? 'Limit Exceeded' : 'Under Control'}
                         </span>
                         <span className={isOver ? 'text-red-500' : 'text-primary'}>

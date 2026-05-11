@@ -8,16 +8,31 @@
   --color-bg-dark: #121212;
   --color-card-dark: #1e1e1e;
   --color-border-dark: #333333;
+  
+  /* Light Theme Colors (Sophisticated Stone & Espresso) */
+  --color-bg-light: #f1f0ee; /* Warm Stone Grey */
+  --color-card-light: #ffffff;
+  --color-border-light: #e2e0dd;
+  --color-text-light: #292524; /* Deep Espresso Brown/Stone */
+  --color-text-muted-light: #78716c; /* Warm Muted Stone */
 }
 
 @layer base {
   body {
-    @apply bg-bg-dark text-stone-100 font-sans;
+    @apply bg-bg-dark text-stone-100 font-sans transition-colors duration-300;
+  }
+  
+  body.light-theme {
+    @apply bg-bg-light text-text-light;
   }
 }
 
 .glass {
-  @apply bg-card-dark/80 backdrop-blur-md border border-border-dark shadow-xl;
+  @apply bg-card-dark/80 backdrop-blur-md border border-border-dark shadow-xl transition-all;
+}
+
+.light-theme .glass {
+  @apply bg-card-light/80 border-border-light shadow-lg;
 }
 
 @layer utilities {
@@ -40,6 +55,38 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-stone-200 rounded-full hover:bg-stone-300 transition-colors;
+  @apply bg-stone-700 rounded-full hover:bg-stone-600 transition-colors;
 }
 
+.light-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-stone-300 hover:bg-stone-400;
+}
+
+/* Glassy secondary nav components */
+.glass-nav {
+  @apply backdrop-blur-2xl bg-white/[0.08] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transition-all;
+}
+
+.light-theme .glass-nav {
+  @apply bg-black/[0.03] border-black/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)];
+}
+
+.glass-input {
+  @apply backdrop-blur-xl bg-white/[0.03] border border-white/10 focus:border-primary/40 focus:bg-white/[0.06] transition-all outline-none;
+}
+
+.light-theme .glass-input {
+  @apply bg-black/[0.02] border-black/10 focus:border-primary/30 focus:bg-black/[0.04] text-text-light;
+}
+
+.nav-item-glass {
+  @apply flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300;
+}
+
+.nav-item-glass.active {
+  @apply bg-white/10 text-white scale-105 shadow-inner;
+}
+
+.light-theme .nav-item-glass.active {
+  @apply bg-black/5 text-primary;
+}

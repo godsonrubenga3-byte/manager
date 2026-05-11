@@ -36,7 +36,7 @@ export default function Notification({ message, type, onClose, duration = 3000 }
       <div className="flex-shrink-0">
         {icons[type]}
       </div>
-      <div className="flex-1 text-sm font-bold text-white leading-tight">
+      <div className="flex-1 text-sm font-bold text-white light-theme:text-text-light leading-tight">
         {message}
       </div>
       <button 

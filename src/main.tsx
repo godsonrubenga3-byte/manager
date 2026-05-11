@@ -4,14 +4,17 @@ import { HashRouter } from 'react-router-dom';
 import { StrictMode } from 'react';
 import './index.css';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import App from './App';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
     </HashRouter>
   </StrictMode>,
 );
